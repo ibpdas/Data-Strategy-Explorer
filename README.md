@@ -7,7 +7,7 @@
 [![Contribute a Strategy](https://img.shields.io/badge/Contribute-Submit%20New%20Strategy-blue)](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)
 
 
-**Making data strategy reusable.**  
+**Faster, more impactful data strategies**  
 
 An open, insight driven library of **UK public sector data strategies, playbooks, and lessons learned** — helping data leaders compare, learn, and write better strategies.
 
