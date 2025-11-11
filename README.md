@@ -2,8 +2,10 @@
 
 ![Public Good](https://img.shields.io/badge/Public%20Good-Open%20Data%20Resource-brightgreen)
 ![Responsible AI](https://img.shields.io/badge/Responsible-AI-blueviolet)
-[![Contribute a Strategy](https://img.shields.io/badge/Contribute-Submit%20New%20Strategy-blue)](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)
 ![Verified Sources](https://img.shields.io/badge/Sources-Verified%2020%2B-informational)
+
+[![Contribute a Strategy](https://img.shields.io/badge/Contribute-Submit%20New%20Strategy-blue)](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)
+
 
 **Making data strategy reusable.**  
 
