@@ -46,15 +46,20 @@ def apply_filters(d: pd.DataFrame) -> pd.DataFrame:
 fdf = apply_filters(df)
 
 # ---- Header
-st.title("UK Public Sector Data Strategies Explorer")
-st.write("A lightweight meta view for public sector data leaders to identify strategies across years, scopes, and organisations.")
+st.title("Public Sector Data Strategies Explorer")
+st.write("A lightweight meta view for UK public sector data leaders to identify strategies across years, scopes, and organisations.")
 
 # ---- KPIs
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Total strategies (filtered)", f"{len(fdf):,}")
 kpi2.metric("Year span (filtered)", f"{int(fdf['year'].min())}–{int(fdf['year'].max())}" if len(fdf) else "—")
 kpi3.metric("Scopes represented", f"{len(fdf['scope'].unique())}" if len(fdf) else "—")
+# --- Refresh button (clears cache + reruns) ---
 
+st.sidebar.markdown("### Data")
+if st.sidebar.button("🔄 Refresh data"):
+    st.cache_data.clear()
+    st.rerun()
 # ---- Charts
 c1, c2 = st.columns(2)
 
