@@ -13,7 +13,7 @@
 - **ONS Data Strategy** (2023) — Office for National Statistics — Principles/policies for managing data and public trust. <https://www.ons.gov.uk/aboutus/transparencyandgovernance/datastrategy>
 - **OPSS Data Strategy 2022–2025** (2023) — Office for Product Safety & Standards (DBT) — Data for regulatory/policy functions. <https://www.gov.uk/government/publications/opss-data-strategy-2022-2025/opss-data-strategy-2022-2025>
 - **HMCTS Data Strategy** (2021) — HM Courts & Tribunals Service — Data-driven justice services aligned to NDS/MoJ. <https://www.gov.uk/government/organisations/hm-courts-and-tribunals-service>
-- **The Pensions Regulator (TPR) Data Strategy** (2024) — TPR — Ecosystem approach to reduce burden and improve outcomes. <https://www.thepensionsregulator.gov.uk/en/document-library/strategy-and-policy/the-pensions-regulators-data-strategy>
+- **The Pensions Regulator (TPR) Data Strategy** (2025) — TPR — Ecosystem approach to reduce burden and improve outcomes. <https://www.thepensionsregulator.gov.uk/en/document-library/corporate-information/tpr-data-strategy>
 
 ## Devolved Nations
 - **Scotland – Data Strategy for Health & Social Care** (2023) — Scottish Government — Trusted, secure ecosystem with common standards. <https://www.gov.scot/publications/data-strategy-health-social-care/>
