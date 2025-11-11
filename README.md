@@ -59,7 +59,6 @@ It combines official documents, structured metadata, and practical guides for dr
 
 
 ## Contributing
-We welcome pull requests and issue submissions for new strategies.  
 Use plain English, official open links, and short summaries. See `CONTRIBUTING.md` for curation rules.
 
 ---
