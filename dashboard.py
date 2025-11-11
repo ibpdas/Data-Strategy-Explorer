@@ -63,7 +63,7 @@ if st.sidebar.button("🔄 Refresh data"):
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "💡 **[Contribute a Strategy →](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)**",
+    "**[Contribute a Strategy →](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)**",
     unsafe_allow_html=True
 )
 
