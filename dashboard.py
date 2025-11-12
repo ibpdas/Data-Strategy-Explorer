@@ -239,10 +239,41 @@ with tab_types:
 with tab_about:
     st.subheader("About this Explorer")
     st.markdown("""
-This build keeps the interface **simple** and **educational**:
-- 🔎 **Explore** — browse strategies, see volumes by year and organisation, open original sources
-- 👁️ **Strategy Types** — learn the ten design trade‑offs and self‑assess your current position
-- ℹ️ **About** — purpose, method, and how to contribute
+The **Public Sector Data Strategy Explorer** brings together real-world strategies and frameworks, helping governments understand **how data strategy design varies across contexts**.  
 
-**Ten Lenses:** Abstraction, Adaptability, Ambition, Coverage, Governance, Orientation, Motivation, Access, Delivery, Decision.
+It provides two main experiences:
+- 🔎 **Explore** — browse and filter public-sector data strategies, view publication trends, and open source documents.  
+- 👁️ **Strategy Types (Ten Lenses)** — an educational tool for exploring the **trade-offs** that shape how data strategies are designed.  
 """)
+
+    st.markdown("### 👁️ The Ten Lenses of Data Strategy")
+    st.markdown("""
+Each public-sector data strategy sits somewhere along these **ten dimensions of design**.  
+There’s no “right” end — each choice represents a trade-off between stability and innovation, control and creativity, or vision and execution.
+""")
+
+    st.markdown("""
+| # | Lens | Description | Public-Sector Example |
+|---|------|--------------|----------------------|
+| **1** | **Abstraction Level** | **Conceptual** focuses on high-level vision and principles, while **Logical / Physical** dives into data models, architecture, and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Blueprint” is logical/physical. |
+| **2** | **Adaptability** | **Living** strategies evolve with emerging tech and policies; **Fixed** strategies define a stable long-term framework. | The UK’s AI White Paper is “living,” regularly updated; GDPR is “fixed.” |
+| **3** | **Ambition** | **Essential** ensures foundations like quality and standards; **Transformational** drives innovation, AI, and automation. | NHS’s data governance reforms are essential; Estonia’s X-Road platform is transformational. |
+| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** focuses on quick wins or exemplar projects. | A cross-government “data maturity” programme is horizontal; a transport analytics pilot is use-case-based. |
+| **5** | **Governance Structure** | **Ecosystem / Federated** promotes shared ownership; **Centralised** enforces strong control. | The UK’s federated CDO network is ecosystem-based; Singapore’s Smart Nation is more centralised. |
+| **6** | **Orientation** | **Technology-focused** emphasises data platforms and infrastructure; **Value-focused** prioritises policy outcomes and public value. | A cloud migration roadmap is technology-focused; an outcomes framework for service improvement is value-focused. |
+| **7** | **Motivation** | **Compliance-driven** ensures legality, ethics, and security; **Innovation-driven** seeks to unlock new opportunities. | GDPR compliance is compliance-driven; data-sharing sandboxes are innovation-driven. |
+| **8** | **Access Philosophy** | **Data-democratised** broadens access across teams; **Controlled access** enforces permissions and data minimisation. | Open-data portals embody democratisation; sensitive health datasets remain controlled. |
+| **9** | **Delivery Mode** | **Incremental** builds iteratively through pilots; **Big Bang** aims for rapid, large-scale change. | Local councils testing data standards = incremental; national data strategy launches = big bang. |
+| **10** | **Decision Model** | **Data-informed** blends evidence with judgement; **Data-driven** relies heavily on automated insight. | A policymaker weighing analytics with public feedback is data-informed; an automated fraud detection system is data-driven. |
+""")
+
+    st.markdown("""
+---
+### 💡 How to Use the Explorer
+- Use the **Explore tab** to see real strategies by country, year, and organisation type.  
+- Use the **Ten Lenses tab** in workshops or training to discuss how your organisation balances each dimension.  
+- Compare results, export your self-assessment JSON, and evolve your strategy consciously.  
+
+> “Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”
+""")
+
