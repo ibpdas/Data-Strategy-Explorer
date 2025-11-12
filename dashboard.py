@@ -1,122 +1,160 @@
-# Streamlit dashboard for: UK Public Sector Data Strategies
-# Reads data/strategies.csv and provides filters, charts, and a download.
-# Run: streamlit run dashboard.py
-
+# ---------------------------
+# Public Sector Data Strategy Explorer
+# ---------------------------
+import os
+import re
+from datetime import date
 import pandas as pd
-import streamlit as st
 import plotly.express as px
-from io import StringIO
+from slugify import slugify
+from rapidfuzz import fuzz, process
+import streamlit as st
 
-st.set_page_config(page_title="UK Public Sector Data Strategies Explorer", layout="wide")
+CSV_PATH = os.path.join("strategies.csv")
 
-@st.cache_data
-def load_data(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    # Basic sanity / normalization
-    for col in ["title", "organisation", "year", "scope", "link", "summary"]:
-        if col not in df.columns:
-            raise ValueError(f"Missing required column: {col}")
-    df["year"] = pd.to_numeric(df["year"], errors="coerce")
-    df["scope"] = df["scope"].str.strip().str.lower()
-    return df.dropna(subset=["title", "organisation", "year", "scope"])
+# ------------ Utilities
+@st.cache_data(show_spinner=False)
+def load_data(path=CSV_PATH):
+    df = pd.read_csv(path).fillna("")
+    # enforce minimal columns
+    required = ["id","title","organisation","org_type","country","year","scope","link","themes","pillars","summary","source","date_added"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        st.warning(f"Missing expected columns: {missing}")
+    # coerce types
+    if "year" in df.columns:
+        df["year"] = pd.to_numeric(df["year"], errors="coerce")
+    return df
 
-RAW_URL = "https://raw.githubusercontent.com/ibpdas/Public-Sector-Data-Strategies/main/data/strategies.csv"
-df = load_data(RAW_URL)
+def tokenize_semicol(col):
+    if not col: return []
+    return [t.strip() for t in str(col).split(";") if t.strip()]
 
+def fuzzy_filter(df, query, limit=100):
+    if not query: return df
+    query = query.strip()
+    pool = (df["title"] + " " + df["organisation"] + " " + df["summary"]).tolist()
+    matches = process.extract(query, pool, scorer=fuzz.WRatio, limit=len(pool))
+    keep_idx = set([i for i, (_, score, i) in enumerate(matches) if score >= 60])
+    return df.iloc[list(keep_idx)].head(limit)
 
-# ---- Sidebar filters
-st.sidebar.header("Filters")
-year_min, year_max = int(df["year"].min()), int(df["year"].max())
-year_range = st.sidebar.slider("Year", min_value=year_min, max_value=year_max,
-                               value=(year_min, year_max), step=1)
-scopes = sorted(df["scope"].dropna().unique())
-scope_sel = st.sidebar.multiselect("Scope", scopes, default=scopes)
+def explode_semicol(df, col):
+    # returns long form for themes/pillars charts
+    long_rows = []
+    for _, r in df.iterrows():
+        items = tokenize_semicol(r.get(col, ""))
+        if not items:
+            long_rows.append({**r.to_dict(), col: "(none)"})
+        else:
+            for it in items:
+                row = r.to_dict()
+                row[col] = it
+                long_rows.append(row)
+    return pd.DataFrame(long_rows)
 
-org_search = st.sidebar.text_input("Search title/organisation/summary", value="").strip().lower()
+# ------------ App
+st.set_page_config(page_title="Public Sector Data Strategy Explorer", layout="wide")
+st.title("Public Sector Data Strategy Explorer")
+st.caption("Compare UK public sector data strategies, spot patterns, and reuse what works.")
 
-def apply_filters(d: pd.DataFrame) -> pd.DataFrame:
-    m = (d["year"].between(year_range[0], year_range[1])) & (d["scope"].isin(scope_sel))
-    if org_search:
-        txt_cols = d[["title", "organisation", "summary"]].fillna("").apply(
-            lambda s: s.str.lower().str.contains(org_search)
-        )
-        m &= txt_cols.any(axis=1)
-    return d[m].copy()
+with st.sidebar:
+    st.subheader("Filters")
+    df = load_data()
+    years = sorted([int(y) for y in df["year"].dropna().unique()]) if "year" in df else []
+    min_y, max_y = (min(years), max(years)) if years else (2015, date.today().year)
+    year_range = st.slider("Year range", min_value=min_y, max_value=max_y, value=(min_y, max_y), step=1)
 
-fdf = apply_filters(df)
+    org_types = sorted(df["org_type"].unique())
+    org_type_sel = st.multiselect("Organisation type", org_types, default=org_types)
 
-# ---- Header
-st.title("Public Sector Data Strategies Explorer")
-st.write("A lightweight meta view for UK public sector data leaders to identify strategies across years, scopes, and organisations.")
+    countries = sorted(df["country"].unique())
+    country_sel = st.multiselect("Country", countries, default=countries)
 
-# ---- KPIs
-kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Total strategies (filtered)", f"{len(fdf):,}")
-kpi2.metric("Year span (filtered)", f"{int(fdf['year'].min())}–{int(fdf['year'].max())}" if len(fdf) else "—")
-kpi3.metric("Scopes represented", f"{len(fdf['scope'].unique())}" if len(fdf) else "—")
-# --- Refresh button (clears cache + reruns) ---
+    scopes = sorted(df["scope"].unique())
+    scope_sel = st.multiselect("Scope", scopes, default=scopes)
 
-st.sidebar.markdown("### Data")
-if st.sidebar.button("🔄 Refresh data"):
-    st.cache_data.clear()
-    st.rerun()
+    q = st.text_input("Search title, organisation, summary", "")
 
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    "**[Contribute a Strategy →](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission)**",
-    unsafe_allow_html=True
-)
+    st.markdown("---")
+    st.markdown("**Data**")
+    st.write(f"{len(df)} strategies")
+    st.markdown("[Contribute via GitHub Issues](https://github.com/ibpdas/Public-Sector-Data-Strategy-Explorer-/issues)")
 
-# ---- Charts
-c1, c2 = st.columns(2)
+# apply filters
+fdf = df.copy()
+if "year" in fdf.columns:
+    fdf = fdf[(fdf["year"] >= year_range[0]) & (fdf["year"] <= year_range[1])]
+if org_type_sel:
+    fdf = fdf[fdf["org_type"].isin(org_type_sel)]
+if country_sel:
+    fdf = fdf[fdf["country"].isin(country_sel)]
+if scope_sel:
+    fdf = fdf[fdf["scope"].isin(scope_sel)]
 
-with c1:
-    if len(fdf):
-        year_counts = fdf.groupby("year").size().reset_index(name="count")
-        fig_year = px.bar(year_counts, x="year", y="count", title="Strategies by Year",
-                          labels={"year": "Year", "count": "Count"})
-        fig_year.update_layout(margin=dict(l=0, r=0, t=50, b=0))
-        st.plotly_chart(fig_year, use_container_width=True)
-    else:
-        st.info("No data for selected filters.")
+fdf = fuzzy_filter(fdf, q)
 
-with c2:
-    if len(fdf):
-        scope_counts = fdf.groupby("scope").size().reset_index(name="count").sort_values("count", ascending=False)
-        fig_scope = px.pie(scope_counts, names="scope", values="count", title="Distribution by Scope")
-        fig_scope.update_layout(margin=dict(l=0, r=0, t=50, b=0))
-        st.plotly_chart(fig_scope, use_container_width=True)
-    else:
-        st.info("No data for selected filters.")
+# ---------- KPIs
+col_a, col_b, col_c, col_d = st.columns(4)
+col_a.metric("Strategies", len(fdf))
+col_b.metric("Org types", fdf["org_type"].nunique())
+col_c.metric("Countries", fdf["country"].nunique())
+yr_min = int(fdf["year"].min()) if len(fdf) and pd.notna(fdf["year"].min()) else "-"
+yr_max = int(fdf["year"].max()) if len(fdf) and pd.notna(fdf["year"].max()) else "-"
+col_d.metric("Year span", f"{yr_min}–{yr_max}")
 
-# Top organisations (optional)
-if len(fdf):
-    st.subheader("Top organisations (by number of strategies)")
-    top_org = (fdf.groupby("organisation").size()
-               .reset_index(name="count")
-               .sort_values("count", ascending=False).head(10))
-    fig_org = px.bar(top_org, x="organisation", y="count", title="Top organisations",
-                     labels={"organisation": "Organisation", "count": "Count"})
-    fig_org.update_layout(xaxis_tickangle=-35, margin=dict(l=0, r=0, t=50, b=0))
-    st.plotly_chart(fig_org, use_container_width=True)
+# ---------- Charts
+st.subheader("Patterns")
+left, right = st.columns([2,2])
 
-# ---- Table (filterable)
-st.subheader("Explore strategies")
+with left:
+    if "year" in fdf.columns and len(fdf):
+        by_year = fdf.groupby("year", dropna=True).size().reset_index(name="count")
+        fig1 = px.bar(by_year, x="year", y="count", title="Strategies by year")
+        st.plotly_chart(fig1, use_container_width=True)
+
+with right:
+    if "themes" in fdf.columns and len(fdf):
+        themes_long = explode_semicol(fdf, "themes")
+        by_theme = themes_long.groupby("themes").size().reset_index(name="count").sort_values("count", ascending=False)
+        fig2 = px.treemap(by_theme, path=["themes"], values="count", title="Top themes")
+        st.plotly_chart(fig2, use_container_width=True)
+
+left2, right2 = st.columns([2,2])
+with left2:
+    if "org_type" in fdf.columns and len(fdf):
+        by_org = fdf.groupby("org_type").size().reset_index(name="count").sort_values("count", ascending=False)
+        fig3 = px.bar(by_org, x="org_type", y="count", title="Strategies by organisation type")
+        st.plotly_chart(fig3, use_container_width=True)
+
+with right2:
+    if "pillars" in fdf.columns and len(fdf):
+        pillars_long = explode_semicol(fdf, "pillars")
+        by_pillar = pillars_long.groupby("pillars").size().reset_index(name="count").sort_values("count", ascending=False)
+        fig4 = px.treemap(by_pillar, path=["pillars"], values="count", title="Pillars mentioned")
+        st.plotly_chart(fig4, use_container_width=True)
+
+st.markdown("---")
+
+# ---------- Table + cards
+st.subheader("Explorer")
+st.caption("Click a title to open the official document in a new tab.")
 st.dataframe(
-    fdf[["title", "organisation", "year", "scope", "link", "summary"]]
-    .sort_values(["year", "organisation", "title"]),
+    fdf[["title","organisation","org_type","country","year","scope","themes","pillars","source"]].sort_values(["year","organisation"], ascending=[False, True]),
     use_container_width=True,
-    height=420
+    hide_index=True,
 )
 
-# ---- Download filtered CSV
-csv_buf = StringIO()
-fdf.to_csv(csv_buf, index=False)
-st.download_button(
-    label="Download filtered CSV",
-    data=csv_buf.getvalue(),
-    file_name="strategies_filtered.csv",
-    mime="text/csv"
-)
+st.markdown("### Details")
+for _, r in fdf.sort_values("year", ascending=False).iterrows():
+    with st.expander(f"📄 {r['title']} — {r['organisation']} ({int(r['year']) if pd.notna(r['year']) else '—'})"):
+        st.write(r["summary"] if r["summary"] else "_No summary yet._")
+        meta_cols = st.columns(4)
+        meta_cols[0].write(f"**Org type:** {r['org_type']}")
+        meta_cols[1].write(f"**Country:** {r['country']}")
+        meta_cols[2].write(f"**Scope:** {r['scope']}")
+        meta_cols[3].write(f"**Source:** {r['source']}")
+        st.write(f"**Themes:** {', '.join(tokenize_semicol(r['themes'])) or '—'}")
+        st.write(f"**Pillars:** {', '.join(tokenize_semicol(r['pillars'])) or '—'}")
+        if r["link"]:
+            st.link_button("Open document", r["link"], use_container_width=False)
 
-st.caption("Tip: contribute updates via Issues → “💡 Strategy Submission”.")
