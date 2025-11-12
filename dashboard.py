@@ -225,15 +225,15 @@ with tab_home:
     with cta1:
         if st.button("Start with Explore →"):
             st.session_state["_active_tab"] = "Explore"
-            st.experimental_rerun()
+            st.rerun()
     with cta2:
         if st.button("Set your Profiles →"):
             st.session_state["_active_tab"] = "Lenses"
-            st.experimental_rerun()
+            st.rerun()
     with cta3:
         if st.button("See the Journey →"):
             st.session_state["_active_tab"] = "Journey"
-            st.experimental_rerun()
+            st.rerun()
 
     st.markdown("### What’s inside")
     colA, colB, colC = st.columns(3)
@@ -274,13 +274,7 @@ Gap analysis with radar + bars; auto‑prioritise top shifts; turn into actions.
 - v1.5: Reverted tabs; embedded About content; improved cache-busting for CSV.
 """)
 
-# Jump user to the tab they clicked from Home
-if st.session_state.get("_active_tab") == "Explore":
-    st.experimental_set_query_params(tab="Explore")
-elif st.session_state.get("_active_tab") == "Lenses":
-    st.experimental_set_query_params(tab="Lenses")
-elif st.session_state.get("_active_tab") == "Journey":
-    st.experimental_set_query_params(tab="Journey")
+# (Tab jump disabled to avoid URL param issues in some Streamlit versions)
 
 # ====================================================
 # 🔎 EXPLORE
@@ -542,4 +536,3 @@ Use the **Lenses** tab — each lens includes when to lean left/right and a conc
             st.markdown("> **“Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”**")
 
     render_about_tab_full(tab_about, AXES)
-
