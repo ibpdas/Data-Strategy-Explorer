@@ -1,5 +1,6 @@
+
 # ---------------------------
-# Public Sector Data Strategy Explorer — Minimal + Strategy Types (Ten Lenses)
+# Public Sector Data Strategy Explorer — Minimal + Strategy Types (Presets & Overlays)
 # ---------------------------
 import os, glob, time, json
 import pandas as pd
@@ -131,66 +132,65 @@ with tab_explore:
 
     if fdf.empty:
         st.warning("No results match your filters/search. Try clearing a filter or the search box.")
-        st.stop()
-
-    # KPIs
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Strategies", len(fdf))
-    c2.metric("Org types", fdf["org_type"].nunique())
-    c3.metric("Countries", fdf["country"].nunique())
-    yr_min = int(fdf["year"].min()) if pd.notna(fdf["year"].min()) else "—"
-    yr_max = int(fdf["year"].max()) if pd.notna(fdf["year"].max()) else "—"
-    c4.metric("Year span", f"{yr_min}–{yr_max}")
-
-    # Visuals
-    st.subheader("Visuals")
-    row1_left, row1_right = st.columns(2)
-
-    if fdf["year"].notna().any():
-        by_year = fdf[fdf["year"].notna()].groupby("year").size().reset_index(name="count").sort_values("year")
-        row1_left.plotly_chart(px.bar(by_year, x="year", y="count", title="Strategies by year"), use_container_width=True)
     else:
-        row1_left.info("No numeric 'year' values to chart.")
+        # KPIs
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Strategies", len(fdf))
+        c2.metric("Org types", fdf["org_type"].nunique())
+        c3.metric("Countries", fdf["country"].nunique())
+        yr_min = int(fdf["year"].min()) if pd.notna(fdf["year"].min()) else "—"
+        yr_max = int(fdf["year"].max()) if pd.notna(fdf["year"].max()) else "—"
+        c4.metric("Year span", f"{yr_min}–{yr_max}")
 
-    by_org = fdf.groupby("organisation").size().reset_index(name="count").sort_values("count", ascending=False).head(15)
-    row1_right.plotly_chart(px.bar(by_org, x="organisation", y="count", title="Top organisations (by count)"), use_container_width=True)
+        # Visuals
+        st.subheader("Visuals")
+        row1_left, row1_right = st.columns(2)
 
-    st.markdown("---")
+        if fdf["year"].notna().any():
+            by_year = fdf[fdf["year"].notna()].groupby("year").size().reset_index(name="count").sort_values("year")
+            row1_left.plotly_chart(px.bar(by_year, x="year", y="count", title="Strategies by year"), use_container_width=True)
+        else:
+            row1_left.info("No numeric 'year' values to chart.")
 
-    # Download filtered CSV
-    st.download_button(
-        "Download filtered CSV",
-        data=fdf.to_csv(index=False).encode("utf-8"),
-        file_name="strategies_filtered.csv",
-        mime="text/csv"
-    )
+        by_org = fdf.groupby("organisation").size().reset_index(name="count").sort_values("count", ascending=False).head(15)
+        row1_right.plotly_chart(px.bar(by_org, x="organisation", y="count", title="Top organisations (by count)"), use_container_width=True)
 
-    # Details
-    st.markdown("### Details")
-    for _, r in fdf.sort_values("year", ascending=False).iterrows():
-        ytxt = int(r["year"]) if pd.notna(r["year"]) else "—"
-        with st.expander(f"📄 {r['title']} — {r['organisation']} ({ytxt})"):
-            st.write(r["summary"] or "_No summary yet._")
-            meta = st.columns(4)
-            meta[0].write(f"**Org type:** {r['org_type']}")
-            meta[1].write(f"**Country:** {r['country']}")
-            meta[2].write(f"**Scope:** {r['scope']}")
-            meta[3].write(f"**Source:** {r['source']}")
-            if r["link"]:
-                st.link_button("Open document", r["link"], use_container_width=False)
+        st.markdown("---")
+
+        # Download filtered CSV
+        st.download_button(
+            "Download filtered CSV",
+            data=fdf.to_csv(index=False).encode("utf-8"),
+            file_name="strategies_filtered.csv",
+            mime="text/csv"
+        )
+
+        # Details
+        st.markdown("### Details")
+        for _, r in fdf.sort_values("year", ascending=False).iterrows():
+            ytxt = int(r["year"]) if pd.notna(r["year"]) else "—"
+            with st.expander(f"📄 {r['title']} — {r['organisation']} ({ytxt})"):
+                st.write(r["summary"] or "_No summary yet._")
+                meta = st.columns(4)
+                meta[0].write(f"**Org type:** {r['org_type']}")
+                meta[1].write(f"**Country:** {r['country']}")
+                meta[2].write(f"**Scope:** {r['scope']}")
+                meta[3].write(f"**Source:** {r['source']}")
+                if r["link"]:
+                    st.link_button("Open document", r["link"], use_container_width=False)
 
 # =====================
-# 👁️ Strategy Types — Ten Lenses (interactive)
+# 👁️ Strategy Types — Ten Lenses (interactive + presets & overlays)
 # =====================
 with tab_types:
     st.subheader("👁️ The Ten Lenses of Data Strategy")
-    st.markdown("Each data strategy balances these ten trade‑offs. Use the sliders to **self‑assess** where your organisation sits today.")
+    st.markdown("Each data strategy balances these ten trade‑offs. Use the sliders to **self‑assess**, and overlay **preset profiles** to compare.")
 
     axes = [
         ("Abstraction Level", "Conceptual", "Logical / Physical"),
         ("Adaptability", "Living", "Fixed"),
         ("Ambition", "Essential", "Transformational"),
-        ("Coverage", "Horizontal", "Breadth / Use‑case‑based"),
+        ("Coverage", "Horizontal", "Use‑case‑based"),
         ("Governance Structure", "Ecosystem / Federated", "Centralised"),
         ("Orientation", "Technology‑focused", "Value‑focused"),
         ("Motivation", "Compliance‑driven", "Innovation‑driven"),
@@ -198,40 +198,123 @@ with tab_types:
         ("Delivery Mode", "Incremental", "Big Bang"),
         ("Decision Model", "Data‑informed", "Data‑driven")
     ]
+    dims = [a[0] for a in axes]
 
+    # Preset profiles (values 0..100; 0 = left label, 100 = right label)
+    PRESETS = {
+        "Foundational": {
+            "Abstraction Level": 100,   # Logical/Physical
+            "Adaptability": 100,        # Fixed
+            "Ambition": 0,              # Essential
+            "Coverage": 0,              # Horizontal
+            "Governance Structure": 100,# Centralised
+            "Orientation": 0,           # Technology-focused
+            "Motivation": 0,            # Compliance-driven
+            "Access Philosophy": 100,   # Controlled access
+            "Delivery Mode": 10,        # Incremental
+            "Decision Model": 30        # Data-informed leaning
+        },
+        "Transformational": {
+            "Abstraction Level": 20,    # Conceptual
+            "Adaptability": 10,         # Living
+            "Ambition": 100,            # Transformational
+            "Coverage": 60,             # More use-case oriented
+            "Governance Structure": 20, # Federated
+            "Orientation": 80,          # Value-focused
+            "Motivation": 100,          # Innovation-driven
+            "Access Philosophy": 30,    # More open
+            "Delivery Mode": 70,        # Tends Big Bang
+            "Decision Model": 90        # Data-driven
+        },
+        "Collaborative": {
+            "Abstraction Level": 30,    # Slightly conceptual
+            "Adaptability": 20,         # Living
+            "Ambition": 50,             # Balanced
+            "Coverage": 20,             # Horizontal
+            "Governance Structure": 10, # Strongly federated
+            "Orientation": 60,          # Value-focused
+            "Motivation": 60,           # Innovation-leaning
+            "Access Philosophy": 20,    # Democratised
+            "Delivery Mode": 30,        # Incremental
+            "Decision Model": 40        # Data-informed
+        },
+        "Insight-led": {
+            "Abstraction Level": 60,    # More logical/physical
+            "Adaptability": 40,         # Leaning living
+            "Ambition": 60,             # Slightly transformational
+            "Coverage": 40,             # Mixed
+            "Governance Structure": 50, # Mixed
+            "Orientation": 70,          # Value-focused
+            "Motivation": 60,           # Innovation-leaning
+            "Access Philosophy": 40,    # Slightly open
+            "Delivery Mode": 40,        # Incremental
+            "Decision Model": 70        # Toward data-driven
+        },
+        "Citizen-focused": {
+            "Abstraction Level": 40,    # Slightly conceptual
+            "Adaptability": 40,         # Leaning living
+            "Ambition": 50,             # Balanced
+            "Coverage": 40,             # Mixed
+            "Governance Structure": 30, # Federated-leaning
+            "Orientation": 100,         # Value-focused
+            "Motivation": 40,           # Balanced with compliance/ethics
+            "Access Philosophy": 20,    # Democratised
+            "Delivery Mode": 40,        # Incremental
+            "Decision Model": 40        # Data-informed
+        }
+    }
+
+    # --- Preset controls
+    left, right = st.columns([1,2])
+    with left:
+        chosen = st.multiselect("Overlay presets", list(PRESETS.keys()), default=["Foundational","Transformational"])
+        apply_to_sliders = st.selectbox("Apply preset to sliders", ["(none)"] + list(PRESETS.keys()))
+        if st.button("Apply preset now") and apply_to_sliders != "(none)":
+            st.session_state["_ten_lenses_scores"] = PRESETS[apply_to_sliders].copy()
+
+    # Initialise or get current slider scores
+    if "_ten_lenses_scores" not in st.session_state:
+        st.session_state["_ten_lenses_scores"] = {d:50 for d in dims}
+
+    # Sliders UI
     st.markdown("#### Self‑assessment sliders")
     cols = st.columns(2)
-    scores = {}
-    for i, (dim, left, right) in enumerate(axes):
+    for i, (dim, left_label, right_label) in enumerate(axes):
         with cols[i % 2]:
-            scores[dim] = st.slider(f"{dim}", 0, 100, 50, format="%d%%", help=f"{left} ←→ {right}")
-            st.caption(f"{left} ←── {scores[dim]}% → {right}")
+            st.session_state["_ten_lenses_scores"][dim] = st.slider(
+                f"{dim}", 0, 100, st.session_state["_ten_lenses_scores"][dim],
+                format="%d%%", help=f"{left_label} ←→ {right_label}")
+            st.caption(f"{left_label} ←── {st.session_state['_ten_lenses_scores'][dim]}% → {right_label}")
 
-    # Radar chart (0‑100) — normalised to 0..1 for the polar radius
-    dims = [a[0] for a in axes]
-    r_vals = [scores[d] / 100.0 for d in dims]
+    # Radar chart with overlays
+    user_vals = [st.session_state["_ten_lenses_scores"][d] / 100.0 for d in dims]
     fig_radar = go.Figure()
-    fig_radar.add_trace(go.Scatterpolar(r=r_vals + [r_vals[0]], theta=dims + [dims[0]], fill='toself', name="Your profile"))
-    fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), showlegend=False, title="Your strategic fingerprint")
+    fig_radar.add_trace(go.Scatterpolar(r=user_vals + [user_vals[0]], theta=dims + [dims[0]], fill='toself', name="Your profile"))
+
+    for name in chosen:
+        p = [PRESETS[name][d] / 100.0 for d in dims]
+        fig_radar.add_trace(go.Scatterpolar(r=p + [p[0]], theta=dims + [dims[0]], fill='toself', name=name, opacity=0.5))
+
+    fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), showlegend=True, title="Strategic fingerprint (you vs presets)")
     st.plotly_chart(fig_radar, use_container_width=True)
 
-    # Bars per dimension for quick reading
-    st.markdown("#### Per‑dimension balance")
+    # Per-dimension bars for the current profile
+    st.markdown("#### Your per‑dimension balance")
     per_dim = pd.DataFrame({
         "Dimension": dims,
-        "Score (0=left, 100=right)": [scores[d] for d in dims]
+        "Score (0=left, 100=right)": [st.session_state["_ten_lenses_scores"][d] for d in dims]
     })
-    st.plotly_chart(px.bar(per_dim, x="Dimension", y="Score (0=left, 100=right)", title="Balance by lens").update_xaxes(tickangle=30), use_container_width=True)
+    st.plotly_chart(px.bar(per_dim, x="Dimension", y="Score (0=left, 100=right)", title="Your balance by lens").update_xaxes(tickangle=30), use_container_width=True)
 
     # Download self‑assessment JSON
     st.download_button(
         "Download my self‑assessment (JSON)",
-        data=json.dumps(scores, indent=2).encode("utf-8"),
+        data=json.dumps(st.session_state["_ten_lenses_scores"], indent=2).encode("utf-8"),
         file_name="strategy_ten_lenses_self_assessment.json",
         mime="application/json"
     )
 
-    st.info("Tip: Use this tab in workshops. Ask teams to slide independently, then compare profiles to surface strategic tensions and priorities.")
+    st.info("Tip: Use overlays to facilitate discussion: e.g., compare a **Foundational** baseline with a future **Transformational** target profile.")
 
 # =====================
 # ℹ️ About
@@ -239,41 +322,69 @@ with tab_types:
 with tab_about:
     st.subheader("About this Explorer")
     st.markdown("""
-The **Public Sector Data Strategy Explorer** brings together real-world strategies and frameworks, helping governments understand **how data strategy design varies across contexts**.  
-
-It provides two main experiences:
-- 🔎 **Explore** — browse and filter public-sector data strategies, view publication trends, and open source documents.  
-- 👁️ **Strategy Types (Ten Lenses)** — an educational tool for exploring the **trade-offs** that shape how data strategies are designed.  
+The **Public Sector Data Strategy Explorer** helps governments and public bodies understand **how data strategies differ** — in scope, ambition, and governance.  
+It combines a searchable dataset of real strategies with a conceptual framework called **The Ten Lenses of Data Strategy**.
 """)
 
-    st.markdown("### 👁️ The Ten Lenses of Data Strategy")
-    st.markdown("""
-Each public-sector data strategy sits somewhere along these **ten dimensions of design**.  
-There’s no “right” end — each choice represents a trade-off between stability and innovation, control and creativity, or vision and execution.
-""")
+    # --- Visual Overview of Lenses (dual-color bars)
+    st.markdown("### 👁️ The Ten Lenses of Data Strategy — Visual Overview")
 
+    lenses = [
+        ("Abstraction Level", "Conceptual", "Logical / Physical"),
+        ("Adaptability", "Living", "Fixed"),
+        ("Ambition", "Essential", "Transformational"),
+        ("Coverage", "Horizontal", "Use-case-based"),
+        ("Governance Structure", "Ecosystem / Federated", "Centralised"),
+        ("Orientation", "Technology-focused", "Value-focused"),
+        ("Motivation", "Compliance-driven", "Innovation-driven"),
+        ("Access Philosophy", "Data-democratised", "Controlled access"),
+        ("Delivery Mode", "Incremental", "Big Bang"),
+        ("Decision Model", "Data-informed", "Data-driven")
+    ]
+
+    fig = go.Figure()
+    for i, (dim, left, right) in enumerate(lenses):
+        fig.add_trace(go.Bar(
+            x=[50, 50],
+            y=[f"{i+1}. {dim}", f"{i+1}. {dim}"],
+            orientation='h',
+            marker_color=['#70A9FF', '#FFB8B8'],
+            showlegend=False,
+            hovertext=[left, right]
+        ))
+    fig.update_layout(
+        barmode='stack',
+        title="Trade-off Spectrum Across Ten Lenses",
+        xaxis=dict(showticklabels=False, range=[0,100]),
+        height=500,
+        margin=dict(l=20,r=20,t=40,b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # --- Detailed Table with Examples
     st.markdown("""
+### 🔍 Explanation and Public-Sector Examples
+
 | # | Lens | Description | Public-Sector Example |
 |---|------|--------------|----------------------|
-| **1** | **Abstraction Level** | **Conceptual** focuses on high-level vision and principles, while **Logical / Physical** dives into data models, architecture, and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Blueprint” is logical/physical. |
-| **2** | **Adaptability** | **Living** strategies evolve with emerging tech and policies; **Fixed** strategies define a stable long-term framework. | The UK’s AI White Paper is “living,” regularly updated; GDPR is “fixed.” |
-| **3** | **Ambition** | **Essential** ensures foundations like quality and standards; **Transformational** drives innovation, AI, and automation. | NHS’s data governance reforms are essential; Estonia’s X-Road platform is transformational. |
-| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** focuses on quick wins or exemplar projects. | A cross-government “data maturity” programme is horizontal; a transport analytics pilot is use-case-based. |
-| **5** | **Governance Structure** | **Ecosystem / Federated** promotes shared ownership; **Centralised** enforces strong control. | The UK’s federated CDO network is ecosystem-based; Singapore’s Smart Nation is more centralised. |
-| **6** | **Orientation** | **Technology-focused** emphasises data platforms and infrastructure; **Value-focused** prioritises policy outcomes and public value. | A cloud migration roadmap is technology-focused; an outcomes framework for service improvement is value-focused. |
-| **7** | **Motivation** | **Compliance-driven** ensures legality, ethics, and security; **Innovation-driven** seeks to unlock new opportunities. | GDPR compliance is compliance-driven; data-sharing sandboxes are innovation-driven. |
-| **8** | **Access Philosophy** | **Data-democratised** broadens access across teams; **Controlled access** enforces permissions and data minimisation. | Open-data portals embody democratisation; sensitive health datasets remain controlled. |
-| **9** | **Delivery Mode** | **Incremental** builds iteratively through pilots; **Big Bang** aims for rapid, large-scale change. | Local councils testing data standards = incremental; national data strategy launches = big bang. |
-| **10** | **Decision Model** | **Data-informed** blends evidence with judgement; **Data-driven** relies heavily on automated insight. | A policymaker weighing analytics with public feedback is data-informed; an automated fraud detection system is data-driven. |
+| **1** | **Abstraction Level** | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Blueprint” is logical/physical. |
+| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK’s AI White Paper is living; GDPR is fixed. |
+| **3** | **Ambition** | **Essential** ensures foundations; **Transformational** drives innovation and automation. | NHS data governance reforms are essential; Estonia’s X-Road is transformational. |
+| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | A cross-government maturity model vs a sector-specific pilot. |
+| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | UK’s federated CDO network vs Singapore’s Smart Nation. |
+| **6** | **Orientation** | **Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
+| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | GDPR compliance vs data-sharing sandboxes. |
+| **8** | **Access Philosophy** | **Democratised** broadens data access; **Controlled** enforces permissions. | Open data portals vs restricted health datasets. |
+| **9** | **Delivery Mode** | **Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
+| **10** | **Decision Model** | **Data-informed** blends human judgment; **Data-driven** relies on analytics. | Evidence-based policymaking vs automated fraud detection. |
 """)
 
     st.markdown("""
 ---
-### 💡 How to Use the Explorer
-- Use the **Explore tab** to see real strategies by country, year, and organisation type.  
-- Use the **Ten Lenses tab** in workshops or training to discuss how your organisation balances each dimension.  
-- Compare results, export your self-assessment JSON, and evolve your strategy consciously.  
+### 💡 How to Use This Dashboard
+- **Explore tab:** Browse and compare published data strategies by organisation, country, and year.  
+- **Strategy Types tab:** Reflect on your organisation’s balance across the Ten Lenses; overlay presets to discuss future direction.  
+- **About tab:** Learn the conceptual foundations and examples behind each dimension.  
 
-> “Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”
+> *“Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”*
 """)
-
