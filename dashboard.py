@@ -1,14 +1,15 @@
+# ---------------------------------------------------
+# Public Sector Data Strategy Explorer (Full Version)
+# Includes: Presets + Ten Lenses + Explainer
+# ---------------------------------------------------
 
-# ---------------------------
-# Public Sector Data Strategy Explorer — Minimal + Strategy Types (Presets & Overlays)
-# ---------------------------
 import os, glob, time, json
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Optional fuzzy search
+# --- Optional fuzzy search
 try:
     from rapidfuzz import fuzz, process
     HAS_RAPIDFUZZ = True
@@ -24,11 +25,11 @@ st.set_page_config(page_title="Public Sector Data Strategy Explorer", layout="wi
 st.title("Public Sector Data Strategy Explorer")
 st.caption("Exploring how governments turn data into public value.")
 
-# --- Data source picker (any CSV in current folder)
+# --- CSV file picker
 csv_files = sorted([f for f in glob.glob("*.csv") if os.path.isfile(f)])
 default_csv = "strategies.csv" if "strategies.csv" in csv_files else (csv_files[0] if csv_files else None)
 if not csv_files:
-    st.error("No CSV files found in the app folder. Please add a CSV (e.g., strategies.csv).")
+    st.error("No CSV files found in this folder. Please add a CSV (e.g. strategies.csv).")
     st.stop()
 
 with st.sidebar:
@@ -38,24 +39,17 @@ with st.sidebar:
         mtime = os.path.getmtime(csv_path)
         st.caption(f"📄 **{csv_path}** — last modified: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))}")
     except Exception:
-        mtime = 0
-        st.caption(f"📄 **{csv_path}** — last modified: unknown")
-
-    if st.button("🔄 Reload data (clear cache)"):
+        st.caption("📄 File time unknown.")
+    if st.button("🔄 Reload data"):
         st.cache_data.clear()
         st.experimental_rerun()
 
 @st.cache_data(show_spinner=False)
 def load_data(path: str, modified_time: float):
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"CSV not found at '{path}'.")
-    try:
-        df = pd.read_csv(path).fillna("")
-    except Exception as e:
-        raise RuntimeError(f"Could not read CSV: {e}")
+    df = pd.read_csv(path).fillna("")
     missing = [c for c in REQUIRED if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing expected columns: {missing}. Expected columns: {REQUIRED}")
+        raise ValueError(f"Missing columns: {missing}")
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
     return df
 
@@ -65,271 +59,75 @@ except Exception as e:
     st.error(f"⚠️ {e}")
     st.stop()
 
-# ---- Tabs: Explore / Strategy Types / About
+# --- Tabs
 tab_explore, tab_types, tab_about = st.tabs(["🔎 Explore", "👁️ Strategy Types", "ℹ️ About"])
 
-# =====================
-# 🔎 Explore (metadata-only; no archetypes, no explorer table)
-# =====================
+# ====================================================
+# 🔎 EXPLORE TAB
+# ====================================================
 with tab_explore:
-    # Sidebar filters (metadata only)
     with st.sidebar:
         st.subheader("Filters")
         years = sorted(y for y in df["year"].dropna().unique())
         if years:
-            min_y, max_y = int(min(years)), int(max(years))
-            year_range = st.slider("Year range", min_value=min_y, max_value=max_y, value=(min_y, max_y), step=1)
+            yr = st.slider("Year range", min_value=int(min(years)), max_value=int(max(years)),
+                           value=(int(min(years)), int(max(years))))
         else:
-            year_range = None
-            st.info("No valid 'year' values — skipping year filter.")
-
+            yr = None
         org_types = sorted([v for v in df["org_type"].unique() if v != ""])
-        org_type_sel = st.multiselect("Organisation type", org_types, default=org_types)
-
+        org_type_sel = st.multiselect("Org type", org_types, default=org_types)
         countries = sorted([v for v in df["country"].unique() if v != ""])
         country_sel = st.multiselect("Country", countries, default=countries)
-
         scopes = sorted([v for v in df["scope"].unique() if v != ""])
         scope_sel = st.multiselect("Scope", scopes, default=scopes)
+        q = st.text_input("Search title/org/summary")
 
-        q = st.text_input("Search title, organisation, summary", "", help="Fuzzy search on title/organisation/summary.")
-        st.markdown("---")
-        debug = st.checkbox("Show debug info")
-
-    def fuzzy_filter(df_in, query, limit=500):
-        if not query:
-            return df_in
-        q = query.strip()
-        hay = (df_in["title"] + " " + df_in["organisation"] + " " + df_in["summary"]).fillna("")
+    def fuzzy(df_in, q, limit=400):
+        if not q: return df_in
+        text = (df_in["title"] + " " + df_in["organisation"] + " " + df_in["summary"]).fillna("")
         if HAS_RAPIDFUZZ:
-            matches = process.extract(q, hay.tolist(), scorer=fuzz.WRatio, limit=len(hay))
-            keep_idx = [i for _, score, i in matches if score >= 60]
-            if not keep_idx: return df_in.iloc[0:0]
-            return df_in.iloc[keep_idx].head(limit)
+            matches = process.extract(q, text.tolist(), scorer=fuzz.WRatio, limit=len(text))
+            keep = [i for _, s, i in matches if s >= 60]
+            return df_in.iloc[keep].head(limit)
         else:
-            mask = hay.str.contains(q, case=False, na=False)
+            mask = text.str.contains(q, case=False, na=False)
             return df_in[mask].head(limit)
 
-    # Apply filters
     fdf = df.copy()
-    if year_range:
-        fdf = fdf[(fdf["year"].between(year_range[0], year_range[1], inclusive="both")) | (fdf["year"].isna())]
-    if org_type_sel:
-        fdf = fdf[fdf["org_type"].isin(org_type_sel)]
-    if country_sel:
-        fdf = fdf[fdf["country"].isin(country_sel)]
-    if scope_sel:
-        fdf = fdf[fdf["scope"].isin(scope_sel)]
-    fdf = fuzzy_filter(fdf, q)
+    if yr: fdf = fdf[fdf["year"].between(yr[0], yr[1])]
+    if org_type_sel: fdf = fdf[fdf["org_type"].isin(org_type_sel)]
+    if country_sel: fdf = fdf[fdf["country"].isin(country_sel)]
+    if scope_sel: fdf = fdf[fdf["scope"].isin(scope_sel)]
+    fdf = fuzzy(fdf, q)
 
-    # Debug info
-    st.info(f"Loaded **{len(df)}** rows from **{csv_path}**. After filters: **{len(fdf)}** rows.")
-    if debug:
-        with st.expander("🔎 Debug"):
-            st.write("Working directory:", os.getcwd())
-            st.write("Files:", os.listdir("."))
-            st.dataframe(fdf.head(), use_container_width=True)
+    st.info(f"{len(fdf)} strategies shown")
+    if not fdf.empty:
+        col1, col2 = st.columns(2)
+        by_year = fdf.groupby("year").size().reset_index(name="count").dropna()
+        col1.plotly_chart(px.bar(by_year, x="year", y="count", title="Strategies by year"), use_container_width=True)
+        by_country = fdf.groupby("country").size().reset_index(name="count").sort_values("count", ascending=False)
+        col2.plotly_chart(px.bar(by_country.head(10), x="country", y="count", title="Top countries"), use_container_width=True)
 
-    if fdf.empty:
-        st.warning("No results match your filters/search. Try clearing a filter or the search box.")
-    else:
-        # KPIs
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Strategies", len(fdf))
-        c2.metric("Org types", fdf["org_type"].nunique())
-        c3.metric("Countries", fdf["country"].nunique())
-        yr_min = int(fdf["year"].min()) if pd.notna(fdf["year"].min()) else "—"
-        yr_max = int(fdf["year"].max()) if pd.notna(fdf["year"].max()) else "—"
-        c4.metric("Year span", f"{yr_min}–{yr_max}")
-
-        # Visuals
-        st.subheader("Visuals")
-        row1_left, row1_right = st.columns(2)
-
-        if fdf["year"].notna().any():
-            by_year = fdf[fdf["year"].notna()].groupby("year").size().reset_index(name="count").sort_values("year")
-            row1_left.plotly_chart(px.bar(by_year, x="year", y="count", title="Strategies by year"), use_container_width=True)
-        else:
-            row1_left.info("No numeric 'year' values to chart.")
-
-        by_org = fdf.groupby("organisation").size().reset_index(name="count").sort_values("count", ascending=False).head(15)
-        row1_right.plotly_chart(px.bar(by_org, x="organisation", y="count", title="Top organisations (by count)"), use_container_width=True)
-
-        st.markdown("---")
-
-        # Download filtered CSV
-        st.download_button(
-            "Download filtered CSV",
-            data=fdf.to_csv(index=False).encode("utf-8"),
-            file_name="strategies_filtered.csv",
-            mime="text/csv"
-        )
-
-        # Details
         st.markdown("### Details")
-        for _, r in fdf.sort_values("year", ascending=False).iterrows():
-            ytxt = int(r["year"]) if pd.notna(r["year"]) else "—"
-            with st.expander(f"📄 {r['title']} — {r['organisation']} ({ytxt})"):
-                st.write(r["summary"] or "_No summary yet._")
+        for _, r in fdf.iterrows():
+            with st.expander(f"📄 {r['title']} — {r['organisation']} ({int(r['year']) if pd.notna(r['year']) else '—'})"):
+                st.write(r["summary"])
                 meta = st.columns(4)
                 meta[0].write(f"**Org type:** {r['org_type']}")
                 meta[1].write(f"**Country:** {r['country']}")
                 meta[2].write(f"**Scope:** {r['scope']}")
                 meta[3].write(f"**Source:** {r['source']}")
                 if r["link"]:
-                    st.link_button("Open document", r["link"], use_container_width=False)
+                    st.link_button("Open", r["link"])
 
-# =====================
-# 👁️ Strategy Types — Ten Lenses (interactive + presets & overlays)
-# =====================
+# ====================================================
+# 👁️ STRATEGY TYPES TAB
+# ====================================================
 with tab_types:
     st.subheader("👁️ The Ten Lenses of Data Strategy")
-    st.markdown("Each data strategy balances these ten trade‑offs. Use the sliders to **self‑assess**, and overlay **preset profiles** to compare.")
+    st.markdown("Each data strategy balances ten design tensions — from governance and access to innovation and delivery.")
 
     axes = [
-        ("Abstraction Level", "Conceptual", "Logical / Physical"),
-        ("Adaptability", "Living", "Fixed"),
-        ("Ambition", "Essential", "Transformational"),
-        ("Coverage", "Horizontal", "Use‑case‑based"),
-        ("Governance Structure", "Ecosystem / Federated", "Centralised"),
-        ("Orientation", "Technology‑focused", "Value‑focused"),
-        ("Motivation", "Compliance‑driven", "Innovation‑driven"),
-        ("Access Philosophy", "Data‑democratised", "Controlled access"),
-        ("Delivery Mode", "Incremental", "Big Bang"),
-        ("Decision Model", "Data‑informed", "Data‑driven")
-    ]
-    dims = [a[0] for a in axes]
-
-    # Preset profiles (values 0..100; 0 = left label, 100 = right label)
-    PRESETS = {
-        "Foundational": {
-            "Abstraction Level": 100,   # Logical/Physical
-            "Adaptability": 100,        # Fixed
-            "Ambition": 0,              # Essential
-            "Coverage": 0,              # Horizontal
-            "Governance Structure": 100,# Centralised
-            "Orientation": 0,           # Technology-focused
-            "Motivation": 0,            # Compliance-driven
-            "Access Philosophy": 100,   # Controlled access
-            "Delivery Mode": 10,        # Incremental
-            "Decision Model": 30        # Data-informed leaning
-        },
-        "Transformational": {
-            "Abstraction Level": 20,    # Conceptual
-            "Adaptability": 10,         # Living
-            "Ambition": 100,            # Transformational
-            "Coverage": 60,             # More use-case oriented
-            "Governance Structure": 20, # Federated
-            "Orientation": 80,          # Value-focused
-            "Motivation": 100,          # Innovation-driven
-            "Access Philosophy": 30,    # More open
-            "Delivery Mode": 70,        # Tends Big Bang
-            "Decision Model": 90        # Data-driven
-        },
-        "Collaborative": {
-            "Abstraction Level": 30,    # Slightly conceptual
-            "Adaptability": 20,         # Living
-            "Ambition": 50,             # Balanced
-            "Coverage": 20,             # Horizontal
-            "Governance Structure": 10, # Strongly federated
-            "Orientation": 60,          # Value-focused
-            "Motivation": 60,           # Innovation-leaning
-            "Access Philosophy": 20,    # Democratised
-            "Delivery Mode": 30,        # Incremental
-            "Decision Model": 40        # Data-informed
-        },
-        "Insight-led": {
-            "Abstraction Level": 60,    # More logical/physical
-            "Adaptability": 40,         # Leaning living
-            "Ambition": 60,             # Slightly transformational
-            "Coverage": 40,             # Mixed
-            "Governance Structure": 50, # Mixed
-            "Orientation": 70,          # Value-focused
-            "Motivation": 60,           # Innovation-leaning
-            "Access Philosophy": 40,    # Slightly open
-            "Delivery Mode": 40,        # Incremental
-            "Decision Model": 70        # Toward data-driven
-        },
-        "Citizen-focused": {
-            "Abstraction Level": 40,    # Slightly conceptual
-            "Adaptability": 40,         # Leaning living
-            "Ambition": 50,             # Balanced
-            "Coverage": 40,             # Mixed
-            "Governance Structure": 30, # Federated-leaning
-            "Orientation": 100,         # Value-focused
-            "Motivation": 40,           # Balanced with compliance/ethics
-            "Access Philosophy": 20,    # Democratised
-            "Delivery Mode": 40,        # Incremental
-            "Decision Model": 40        # Data-informed
-        }
-    }
-
-    # --- Preset controls
-    left, right = st.columns([1,2])
-    with left:
-        chosen = st.multiselect("Overlay presets", list(PRESETS.keys()), default=["Foundational","Transformational"])
-        apply_to_sliders = st.selectbox("Apply preset to sliders", ["(none)"] + list(PRESETS.keys()))
-        if st.button("Apply preset now") and apply_to_sliders != "(none)":
-            st.session_state["_ten_lenses_scores"] = PRESETS[apply_to_sliders].copy()
-
-    # Initialise or get current slider scores
-    if "_ten_lenses_scores" not in st.session_state:
-        st.session_state["_ten_lenses_scores"] = {d:50 for d in dims}
-
-    # Sliders UI
-    st.markdown("#### Self‑assessment sliders")
-    cols = st.columns(2)
-    for i, (dim, left_label, right_label) in enumerate(axes):
-        with cols[i % 2]:
-            st.session_state["_ten_lenses_scores"][dim] = st.slider(
-                f"{dim}", 0, 100, st.session_state["_ten_lenses_scores"][dim],
-                format="%d%%", help=f"{left_label} ←→ {right_label}")
-            st.caption(f"{left_label} ←── {st.session_state['_ten_lenses_scores'][dim]}% → {right_label}")
-
-    # Radar chart with overlays
-    user_vals = [st.session_state["_ten_lenses_scores"][d] / 100.0 for d in dims]
-    fig_radar = go.Figure()
-    fig_radar.add_trace(go.Scatterpolar(r=user_vals + [user_vals[0]], theta=dims + [dims[0]], fill='toself', name="Your profile"))
-
-    for name in chosen:
-        p = [PRESETS[name][d] / 100.0 for d in dims]
-        fig_radar.add_trace(go.Scatterpolar(r=p + [p[0]], theta=dims + [dims[0]], fill='toself', name=name, opacity=0.5))
-
-    fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), showlegend=True, title="Strategic fingerprint (you vs presets)")
-    st.plotly_chart(fig_radar, use_container_width=True)
-
-    # Per-dimension bars for the current profile
-    st.markdown("#### Your per‑dimension balance")
-    per_dim = pd.DataFrame({
-        "Dimension": dims,
-        "Score (0=left, 100=right)": [st.session_state["_ten_lenses_scores"][d] for d in dims]
-    })
-    st.plotly_chart(px.bar(per_dim, x="Dimension", y="Score (0=left, 100=right)", title="Your balance by lens").update_xaxes(tickangle=30), use_container_width=True)
-
-    # Download self‑assessment JSON
-    st.download_button(
-        "Download my self‑assessment (JSON)",
-        data=json.dumps(st.session_state["_ten_lenses_scores"], indent=2).encode("utf-8"),
-        file_name="strategy_ten_lenses_self_assessment.json",
-        mime="application/json"
-    )
-
-    st.info("Tip: Use overlays to facilitate discussion: e.g., compare a **Foundational** baseline with a future **Transformational** target profile.")
-
-# =====================
-# ℹ️ About
-# =====================
-with tab_about:
-    st.subheader("About this Explorer")
-    st.markdown("""
-The **Public Sector Data Strategy Explorer** helps governments and public bodies understand **how data strategies differ** — in scope, ambition, and governance.  
-It combines a searchable dataset of real strategies with a conceptual framework called **The Ten Lenses of Data Strategy**.
-""")
-
-    # --- Visual Overview of Lenses (dual-color bars)
-    st.markdown("### 👁️ The Ten Lenses of Data Strategy — Visual Overview")
-
-    lenses = [
         ("Abstraction Level", "Conceptual", "Logical / Physical"),
         ("Adaptability", "Living", "Fixed"),
         ("Ambition", "Essential", "Transformational"),
@@ -341,50 +139,109 @@ It combines a searchable dataset of real strategies with a conceptual framework 
         ("Delivery Mode", "Incremental", "Big Bang"),
         ("Decision Model", "Data-informed", "Data-driven")
     ]
+    dims = [a[0] for a in axes]
 
+    # --- Preset profiles
+    PRESETS = {
+        "Foundational": {"Abstraction Level":100,"Adaptability":100,"Ambition":0,"Coverage":0,"Governance Structure":100,
+                         "Orientation":0,"Motivation":0,"Access Philosophy":100,"Delivery Mode":10,"Decision Model":30},
+        "Transformational": {"Abstraction Level":20,"Adaptability":10,"Ambition":100,"Coverage":60,"Governance Structure":20,
+                             "Orientation":80,"Motivation":100,"Access Philosophy":30,"Delivery Mode":70,"Decision Model":90},
+        "Collaborative": {"Abstraction Level":30,"Adaptability":20,"Ambition":50,"Coverage":20,"Governance Structure":10,
+                          "Orientation":60,"Motivation":60,"Access Philosophy":20,"Delivery Mode":30,"Decision Model":40},
+        "Insight-led": {"Abstraction Level":60,"Adaptability":40,"Ambition":60,"Coverage":40,"Governance Structure":50,
+                        "Orientation":70,"Motivation":60,"Access Philosophy":40,"Delivery Mode":40,"Decision Model":70},
+        "Citizen-focused": {"Abstraction Level":40,"Adaptability":40,"Ambition":50,"Coverage":40,"Governance Structure":30,
+                            "Orientation":100,"Motivation":40,"Access Philosophy":20,"Delivery Mode":40,"Decision Model":40}
+    }
+
+    # --- Explainer function
+    def render_preset_lens_explainer():
+        st.markdown("### 🔗 How the Presets Map to the Ten Lenses")
+        st.caption("Presets are not prescriptions; they represent consistent patterns across the Ten Lenses that express distinct data-strategy philosophies.")
+        with st.expander("Show full explanation"):
+            st.markdown("""
+#### 🧱 Foundational — *“Build the plumbing”*
+Control, compliance, consistency.
+- Logical/Physical, Fixed, Essential, Horizontal, Centralised, Tech-focused, Compliance-driven, Controlled, Incremental, Data-informed
+
+#### 🚀 Transformational — *“Accelerate and innovate”*
+Ambition, AI, public value at scale.
+- Conceptual, Living, Transformational, Use-case-based, Federated, Value-focused, Innovation-driven, Democratised, Big Bang, Data-driven
+
+#### 🤝 Collaborative — *“Connect the ecosystem”*
+Federation, interoperability, shared ownership.
+- Semi-conceptual, Living, Moderate, Horizontal, Federated, Value-focused, Balanced, Democratised, Incremental, Data-informed
+
+#### 📊 Insight-led — *“Evidence before action”*
+Analytics, learning, performance.
+- Logical, Semi-living, Moderate, Targeted, Mixed, Value-focused, Balanced, Semi-open, Incremental, Data-driven
+
+#### 👥 Citizen-focused — *“Ethics, trust, service outcomes”*
+Human-centred, transparent, responsible.
+- Conceptual, Living, Balanced, Horizontal, Federated, Value-focused, Balanced, Democratised, Incremental, Data-informed
+""")
+
+    render_preset_lens_explainer()
+
+    # --- Sliders for self-assessment
+    if "_ten_scores" not in st.session_state:
+        st.session_state["_ten_scores"] = {d:50 for d in dims}
+
+    cols = st.columns(2)
+    for i, (dim, left, right) in enumerate(axes):
+        with cols[i % 2]:
+            st.session_state["_ten_scores"][dim] = st.slider(
+                f"{dim}", 0, 100, st.session_state["_ten_scores"][dim],
+                format="%d%%", help=f"{left} ←→ {right}")
+            st.caption(f"{left} ←── {st.session_state['_ten_scores'][dim]}% → {right}")
+
+    # --- Radar overlay with presets
+    st.markdown("### Compare with Presets")
+    chosen = st.multiselect("Overlay presets", list(PRESETS.keys()), default=["Foundational","Transformational"])
     fig = go.Figure()
-    for i, (dim, left, right) in enumerate(lenses):
-        fig.add_trace(go.Bar(
-            x=[50, 50],
-            y=[f"{i+1}. {dim}", f"{i+1}. {dim}"],
-            orientation='h',
-            marker_color=['#70A9FF', '#FFB8B8'],
-            showlegend=False,
-            hovertext=[left, right]
-        ))
-    fig.update_layout(
-        barmode='stack',
-        title="Trade-off Spectrum Across Ten Lenses",
-        xaxis=dict(showticklabels=False, range=[0,100]),
-        height=500,
-        margin=dict(l=20,r=20,t=40,b=20)
-    )
+    user = [st.session_state["_ten_scores"][d]/100 for d in dims]
+    fig.add_trace(go.Scatterpolar(r=user+[user[0]], theta=dims+[dims[0]], fill='toself', name="You"))
+    for name in chosen:
+        p = [PRESETS[name][d]/100 for d in dims]
+        fig.add_trace(go.Scatterpolar(r=p+[p[0]], theta=dims+[dims[0]], fill='toself', name=name, opacity=0.5))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,1])), title="Strategic Fingerprint")
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- Detailed Table with Examples
-    st.markdown("""
-### 🔍 Explanation and Public-Sector Examples
+    st.download_button("Download My Profile (JSON)",
+                       data=json.dumps(st.session_state["_ten_scores"], indent=2).encode("utf-8"),
+                       file_name="data_strategy_self_assessment.json")
 
-| # | Lens | Description | Public-Sector Example |
-|---|------|--------------|----------------------|
-| **1** | **Abstraction Level** | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Blueprint” is logical/physical. |
-| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK’s AI White Paper is living; GDPR is fixed. |
-| **3** | **Ambition** | **Essential** ensures foundations; **Transformational** drives innovation and automation. | NHS data governance reforms are essential; Estonia’s X-Road is transformational. |
-| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | A cross-government maturity model vs a sector-specific pilot. |
-| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | UK’s federated CDO network vs Singapore’s Smart Nation. |
-| **6** | **Orientation** | **Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
-| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | GDPR compliance vs data-sharing sandboxes. |
-| **8** | **Access Philosophy** | **Democratised** broadens data access; **Controlled** enforces permissions. | Open data portals vs restricted health datasets. |
-| **9** | **Delivery Mode** | **Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
-| **10** | **Decision Model** | **Data-informed** blends human judgment; **Data-driven** relies on analytics. | Evidence-based policymaking vs automated fraud detection. |
+# ====================================================
+# ℹ️ ABOUT TAB
+# ====================================================
+with tab_about:
+    st.subheader("About this Explorer")
+    st.markdown("""
+This open educational tool helps policymakers and analysts understand **how public-sector data strategies differ** —
+in ambition, structure, and approach.
+
+- 🔎 **Explore** — browse strategies by country, organisation, and year  
+- 👁️ **Strategy Types** — understand the *Ten Lenses* and experiment with archetypes  
+- ℹ️ **About** — conceptual foundations, examples, and guidance  
+""")
+
+    st.markdown("### 📘 The Ten Lenses Framework")
+    st.markdown("""
+Each data strategy sits somewhere across these ten design choices:
+1. **Abstraction Level:** Conceptual ↔ Logical/Physical  
+2. **Adaptability:** Living ↔ Fixed  
+3. **Ambition:** Essential ↔ Transformational  
+4. **Coverage:** Horizontal ↔ Use-case-based  
+5. **Governance:** Federated ↔ Centralised  
+6. **Orientation:** Technology-focused ↔ Value-focused  
+7. **Motivation:** Compliance-driven ↔ Innovation-driven  
+8. **Access:** Democratised ↔ Controlled  
+9. **Delivery:** Incremental ↔ Big Bang  
+10. **Decision Model:** Data-informed ↔ Data-driven
 """)
 
     st.markdown("""
 ---
-### 💡 How to Use This Dashboard
-- **Explore tab:** Browse and compare published data strategies by organisation, country, and year.  
-- **Strategy Types tab:** Reflect on your organisation’s balance across the Ten Lenses; overlay presets to discuss future direction.  
-- **About tab:** Learn the conceptual foundations and examples behind each dimension.  
-
-> *“Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”*
+> *“Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity, efficiency and sustailability.”*
 """)
