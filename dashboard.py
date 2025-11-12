@@ -1,50 +1,44 @@
 
 # ---------------------------------------------------
-# Public Sector Data Strategy Explorer — Single File (No Presets)
+# Public Sector Data Strategy Explorer — Uploader + Sidebar About
+# v1.4 – 2025-11-12 12:45 (sidebar-about)
 # ---------------------------------------------------
-import os, glob, time, json
+import os, glob, time, json, hashlib, io
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Optional fuzzy search
 try:
     from rapidfuzz import fuzz, process
     HAS_RAPIDFUZZ = True
 except Exception:
     HAS_RAPIDFUZZ = False
 
+APP_VERSION = "v1.4 – 2025-11-12 12:45 (sidebar-about)"
+
 st.set_page_config(page_title="Public Sector Data Strategy Explorer", layout="wide")
+st.markdown(f"💡 **App version:** {APP_VERSION}")
 st.title("Public Sector Data Strategy Explorer")
-st.caption("Lenses = tensions to manage • Profile = your chosen balance • Journey = current → target. (No presets for maximum clarity)")
+st.caption("Lenses = tensions to manage • Profile = your chosen balance • Journey = current → target. (No presets)")
 
 REQUIRED = [
     "id","title","organisation","org_type","country","year","scope",
     "link","summary","source","date_added"
 ]
 
-# ---------------- DATA LOAD ----------------
-csv_files = sorted([f for f in glob.glob("*.csv") if os.path.isfile(f)])
-default_csv = "strategies.csv" if "strategies.csv" in csv_files else (csv_files[0] if csv_files else None)
-if not csv_files:
-    st.error("No CSV files found in this folder. Please add a CSV (e.g., strategies.csv).")
-    st.stop()
+def file_md5(path:str)->str:
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
-with st.sidebar:
-    st.subheader("Data source")
-    csv_path = st.selectbox("CSV file", options=csv_files, index=csv_files.index(default_csv) if default_csv else 0)
-    try:
-        mtime = os.path.getmtime(csv_path)
-        st.caption(f"📄 **{csv_path}** — last modified: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))}")
-    except Exception:
-        st.caption("📄 File time unknown.")
-    if st.button("🔄 Reload data / clear cache"):
-        st.cache_data.clear()
-        st.experimental_rerun()
+def bytes_md5(b: bytes)->str:
+    return hashlib.md5(b).hexdigest()
 
 @st.cache_data(show_spinner=False)
-def load_data(path: str, modified_time: float):
+def load_data_from_path(path: str, file_hash: str, app_version: str):
     df = pd.read_csv(path).fillna("")
     missing = [c for c in REQUIRED if c not in df.columns]
     if missing:
@@ -52,11 +46,30 @@ def load_data(path: str, modified_time: float):
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
     return df
 
-try:
-    df = load_data(csv_path, os.path.getmtime(csv_path))
-except Exception as e:
-    st.error(f"⚠️ {e}")
+@st.cache_data(show_spinner=False)
+def load_data_from_bytes(content: bytes, file_hash: str, app_version: str):
+    df = pd.read_csv(io.BytesIO(content)).fillna("")
+    missing = [c for c in REQUIRED if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+    df["year"] = pd.to_numeric(df["year"], errors="coerce")
+    return df
+
+# ---------------- DEFAULT DATA (before user overrides) ----------------
+csv_files = sorted([f for f in glob.glob("*.csv") if os.path.isfile(f)])
+default_csv = "strategies.csv" if "strategies.csv" in csv_files else (csv_files[0] if csv_files else None)
+if not csv_files and "uploaded_bytes" not in st.session_state:
+    st.error("No CSV found. Use the Explore tab ▸ Data source expander to upload a CSV, or place one next to the app.")
     st.stop()
+
+# Load default df (can be overridden in Explore tab expander)
+if "uploaded_bytes" in st.session_state:
+    content = st.session_state["uploaded_bytes"]
+    df = load_data_from_bytes(content, bytes_md5(content), APP_VERSION)
+else:
+    # pick default or first
+    pick = default_csv if default_csv else csv_files[0]
+    df = load_data_from_path(pick, file_md5(pick), APP_VERSION)
 
 # ---------------- MODEL ----------------
 AXES = [
@@ -73,7 +86,6 @@ AXES = [
 ]
 DIMENSIONS = [a[0] for a in AXES]
 
-# ---------------- HELPERS ----------------
 def radar_trace(values01, dims, name, opacity=0.6, fill=True):
     r = list(values01) + [values01[0]]
     t = list(dims) + [dims[0]]
@@ -182,102 +194,26 @@ def render_lenses_explainer():
             st.markdown(f"- **Lean {right.lower()} when:** {ex.get('when_right','')}")
             st.markdown(f"- **Example:** {ex.get('example','')}")
 
-def render_about_tab_full(container, AXES):
-    with container:
-        st.subheader("About this Explorer")
+# ---------------- Sidebar: About (before Filters) ----------------
+with st.sidebar:
+    st.subheader("About this tool")
+    st.markdown("""
+**Purpose:** help public bodies **design, communicate, and iterate** their data strategy by making trade‑offs explicit and turning gaps into actions.
 
-        # --- Purpose & Audience
-        st.markdown("""
-### 🎯 Purpose
-Help public bodies **design, communicate, and iterate** their data strategy by making
-the **key tensions** explicit, comparing **current vs target**, and turning gaps into **prioritised actions**.
+**Who it’s for:** CDOs/Heads of Data, policy & ops leaders, analysts/data teams, PMOs/transformation.
 
-### 👥 Who it's for
-- **CDOs / Heads of Data** — to set direction and align leadership.
-- **Policy & Ops leaders** — to frame trade‑offs and agree priorities.
-- **Analysts & Data teams** — to translate strategy into delivery.
-- **PMOs / Transformation** — to track progress and course‑correct.
+**How to use:**
+1) Explore the landscape  
+2) Set Current & Target profiles (Ten Lenses)  
+3) Compare in Journey and prioritise 3 shifts  
+4) Re‑assess quarterly
 """)
-
-        # --- How to use
-        st.markdown("""
-### 🛠️ How to use this tool
-1) **Explore** the landscape of strategies (by year, country, org type) for context.  
-2) **Set profiles**: use the **Ten Lenses** sliders to define **Current** and **Target** positions.  
-3) **Compare** in the **Journey** tab to see directional gaps (left/right) and magnitudes.  
-4) **Prioritise** the top shifts and convert them into actions (owners, timelines, measures).  
-5) **Re‑assess quarterly** — treat your strategy as **living**.
-""")
-
-        # --- Visual Diagram (workflow)
-        st.markdown("### 🗺️ Visual: how the tool fits together")
-        try:
-            import graphviz
-            g = graphviz.Digraph(format="svg")
-            g.attr(rankdir="LR", fontsize="11")
-            g.node("A", "🔎 Explore\nLandscape & filters", shape="rectangle", style="rounded")
-            g.node("B", "👁️ Set Profiles\nTen Lenses sliders\n(Current & Target)", shape="rectangle", style="rounded")
-            g.node("C", "🧭 Journey\nGap analysis\n(radar + bars + priorities)", shape="rectangle", style="rounded")
-            g.node("D", "✅ Action Plan\nOwners • Milestones • Measures", shape="rectangle", style="rounded")
-            g.node("E", "♻️ Re‑assess\nQuarterly cadence", shape="rectangle", style="rounded")
-
-            g.edges([("A","B"), ("B","C"), ("C","D"), ("D","E"), ("E","B")])
-            st.graphviz_chart(g)
-        except Exception:
-            st.info("Diagram requires `graphviz`. If unavailable, skip this visual.")
-
-        # --- What the lenses mean
-        st.markdown("### 👁️ What the Ten Lenses mean")
-        st.caption("Each lens is a **tension to manage** — positions are not 'good' or 'bad', they’re **context‑dependent**.")
-        fig = go.Figure()
-        for i, (dim, left, right) in enumerate(AXES):
-            fig.add_trace(go.Bar(
-                x=[50, 50], y=[f"{i+1}. {dim}", f"{i+1}. {dim}"],
-                orientation="h", marker_color=["#70A9FF", "#FFB8B8"],
-                showlegend=False, hovertext=[left, right]
-            ))
-        fig.update_layout(barmode="stack", xaxis=dict(showticklabels=False, range=[0,100]),
-                          height=460, margin=dict(l=20,r=20,t=10,b=10), title=None)
-        st.plotly_chart(fig, use_container_width=True)
-
-        # --- Quick definitions table
-        rows = []
-        for (dim, left, right) in AXES:
-            rows.append({"Lens": dim, "Left (0)": left, "Right (100)": right})
-        st.dataframe(pd.DataFrame(rows), use_container_width=True)
-
-        # --- Examples (illustrative, non‑prescriptive)
-        st.markdown("### 📚 Examples (illustrative) — how different contexts lean")
-        st.caption("Use these to spark discussion — not as templates.")
-        examples = pd.DataFrame([
-            {"Context": "Estonia (Gov‑wide digital state)", "Lean": "Federated enablement + high adaptability", "Notes": "Shared platforms; domains innovate within standards"},
-            {"Context": "Singapore (Smart Nation)", "Lean": "Value‑focused + transformational exemplars", "Notes": "Cross‑cutting outcomes; strong centre of excellence"},
-            {"Context": "UK NHS (sensitive data)", "Lean": "Controlled access + incremental delivery", "Notes": "Stronger governance; human‑in‑the‑loop decisions"},
-            {"Context": "Local government service redesign", "Lean": "Data‑informed + citizen‑focused", "Notes": "Openness where safe; service‑led iteration"}
-        ])
-        st.dataframe(examples, use_container_width=True)
-
-        # --- FAQs
-        st.markdown("""
-### ❓ FAQs
-**Is one side of a lens better?**  
-No — positions reflect context and risk appetite. The goal is **conscious balance**.
-
-**What if Current and Target are far apart?**  
-That's good information: pick **3 shifts** to start; avoid Big‑Bang unless mandated.
-
-**How do we decide left vs right?**  
-Use the **Lenses explainer** in the **Lenses tab** — each lens includes when to lean left/right and a concrete example.
-""")
-
-        # --- Closing tip
-        st.markdown("> *Treat strategy as a rhythm, not a document.* Review quarterly, learn, and adjust your lens positions.")
+    st.markdown("---")
+    st.subheader("Filters")
 
 # ---------------- EXPLORE CHARTS ----------------
 def render_explore_charts(fdf: pd.DataFrame):
     st.markdown("## 📊 Explore — Landscape & Patterns")
-
-    # KPIs
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Strategies", len(fdf))
     k2.metric("Countries", fdf["country"].nunique() if "country" in fdf.columns else 0)
@@ -286,23 +222,15 @@ def render_explore_charts(fdf: pd.DataFrame):
         k4.metric("Year span", f"{int(fdf['year'].min())}–{int(fdf['year'].max())}")
     else:
         k4.metric("Year span", "—")
-
     st.markdown("---")
-
-    # Row 1: Year + Org type
     c1, c2 = st.columns(2)
     if "year" in fdf.columns and fdf["year"].notna().any():
-        fig_hist = px.histogram(
-            fdf[fdf["year"].notna()], x="year",
-            color="scope" if "scope" in fdf.columns else None,
-            nbins=max(10, min(40, fdf["year"].nunique())),
-            title="Strategies by year"
-        )
+        fig_hist = px.histogram(fdf[fdf["year"].notna()], x="year", color="scope" if "scope" in fdf.columns else None,
+                                nbins=max(10, min(40, fdf["year"].nunique())), title="Strategies by year")
         fig_hist.update_layout(bargap=0.05)
         c1.plotly_chart(fig_hist, use_container_width=True)
     else:
         c1.info("No numeric 'year' values to chart.")
-
     if "org_type" in fdf.columns and fdf["org_type"].notna().any():
         top_org = fdf.groupby("org_type").size().reset_index(name="count").sort_values("count", ascending=False)
         fig_org = px.bar(top_org, x="org_type", y="count", title="Composition by organisation type")
@@ -310,10 +238,7 @@ def render_explore_charts(fdf: pd.DataFrame):
         c2.plotly_chart(fig_org, use_container_width=True)
     else:
         c2.info("No 'org_type' values to chart.")
-
     st.markdown("---")
-
-    # Row 2: Treemap + Map
     c3, c4 = st.columns(2)
     if all(col in fdf.columns for col in ["country","org_type"]):
         if not fdf.empty:
@@ -324,7 +249,6 @@ def render_explore_charts(fdf: pd.DataFrame):
             c3.info("No data for treemap.")
     else:
         c3.info("Need 'country' and 'org_type' for treemap.")
-
     if "country" in fdf.columns and fdf["country"].notna().any():
         by_ctry = fdf.groupby("country").size().reset_index(name="count")
         if not by_ctry.empty:
@@ -335,10 +259,7 @@ def render_explore_charts(fdf: pd.DataFrame):
             c4.info("No country counts to map.")
     else:
         c4.info("No 'country' values to map.")
-
     st.markdown("---")
-
-    # Row 3: Country × Org type + Timeline scatter
     c5, c6 = st.columns(2)
     if all(col in fdf.columns for col in ["country","org_type"]):
         top_ctrys = fdf.groupby("country").size().sort_values(ascending=False).head(12).index.tolist()
@@ -351,7 +272,6 @@ def render_explore_charts(fdf: pd.DataFrame):
             c5.info("No data for stacked bar.")
     else:
         c5.info("Need 'country' and 'org_type' for stacked bar.")
-
     needed = ["year","organisation","title"]
     if all(col in fdf.columns for col in needed) and fdf["year"].notna().any():
         sub = fdf[fdf["year"].notna()].copy()
@@ -361,9 +281,7 @@ def render_explore_charts(fdf: pd.DataFrame):
         c6.plotly_chart(fig_scatter, use_container_width=True)
     else:
         c6.info("Need 'year', 'organisation', and 'title' for timeline scatter.")
-
     st.markdown("---")
-
     if "scope" in fdf.columns and fdf["scope"].notna().any():
         by_scope = fdf["scope"].value_counts().reset_index()
         by_scope.columns = ["scope","count"]
@@ -371,16 +289,63 @@ def render_explore_charts(fdf: pd.DataFrame):
         st.plotly_chart(fig_scope, use_container_width=True)
 
 # ---------------- TABS ----------------
-tab_explore, tab_lenses, tab_journey, tab_about = st.tabs(
-    ["🔎 Explore", "👁️ Lenses (Set Profiles)", "🧭 Journey (Compare)", "ℹ️ About"]
+tab_explore, tab_lenses, tab_journey = st.tabs(
+    ["🔎 Explore", "👁️ Lenses (Set Profiles)", "🧭 Journey (Compare)"]
 )
 
 # ====================================================
 # 🔎 EXPLORE
 # ====================================================
 with tab_explore:
+    # Data source expander (moved from sidebar)
+    with st.expander("📁 Data source & refresh", expanded=False):
+        uploaded = st.file_uploader("Upload a strategies CSV", type=["csv"], key="uploader_main")
+        st.caption("Tip: CSV must include required columns. Use the template below if needed.")
+        st.download_button("Download template CSV", data=(
+            "id,title,organisation,org_type,country,year,scope,link,summary,source,date_added\n"
+            "1,Example Strategy,Example Dept,Ministry,UK,2024,National,https://example.com,Short summary...,Official site,2024-11-12\n"
+        ).encode("utf-8"), file_name="strategies_template.csv", mime="text/csv")
+
+        st.markdown("---")
+        csv_files_local = sorted([f for f in glob.glob('*.csv') if os.path.isfile(f)])
+        if csv_files_local:
+            default_csv_local = "strategies.csv" if "strategies.csv" in csv_files_local else csv_files_local[0]
+            sel = st.selectbox("Or select a CSV from directory", options=csv_files_local, index=csv_files_local.index(default_csv_local))
+            if st.button("Load selected file"):
+                st.session_state.pop("uploaded_bytes", None)
+                st.cache_data.clear()
+                try:
+                    df_new = load_data_from_path(sel, file_md5(sel), APP_VERSION)
+                    df = df_new
+                    st.success(f"Loaded {sel} — {len(df)} rows (MD5 {file_md5(sel)[:12]}…)")
+                except Exception as e:
+                    st.error(f"⚠️ {e}")
+        else:
+            st.info("No CSV files found in directory. Upload one above.")
+
+        cols = st.columns(2)
+        if cols[0].button("🔄 Reload (clear cache)"):
+            st.cache_data.clear()
+            st.rerun()
+        if cols[1].button("🧹 Hard refresh (cache + state)"):
+            st.cache_data.clear()
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
+
+        if uploaded is not None:
+            content = uploaded.read()
+            try:
+                df_new = load_data_from_bytes(content, bytes_md5(content), APP_VERSION)
+                st.session_state["uploaded_bytes"] = content
+                st.cache_data.clear()
+                st.success(f"Loaded uploaded CSV — {len(df_new)} rows (MD5 {bytes_md5(content)[:12]}…)")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Upload error: {e}")
+
+    # Sidebar filters (now only filters after About)
     with st.sidebar:
-        st.subheader("Filters")
         years = sorted(y for y in df["year"].dropna().unique())
         if years:
             yr = st.slider("Year range", int(min(years)), int(max(years)), (int(min(years)), int(max(years))))
@@ -395,11 +360,23 @@ with tab_explore:
         q = st.text_input("Search title/org/summary")
 
     fdf = df.copy()
-    if yr: fdf = fdf[fdf["year"].between(yr[0], yr[1])]
-    if org_type_sel: fdf = fdf[fdf["org_type"].isin(org_type_sel)]
-    if country_sel: fdf = fdf[fdf["country"].isin(country_sel)]
-    if scope_sel: fdf = fdf[fdf["scope"].isin(scope_sel)]
-    fdf = fuzzy(fdf, q)
+    if 'yr' in locals() and yr:
+        fdf = fdf[fdf["year"].between(yr[0], yr[1])]
+    if 'org_type_sel' in locals() and org_type_sel:
+        fdf = fdf[fdf["org_type"].isin(org_type_sel)]
+    if 'country_sel' in locals() and country_sel:
+        fdf = fdf[fdf["country"].isin(country_sel)]
+    if 'scope_sel' in locals() and scope_sel:
+        fdf = fdf[fdf["scope"].isin(scope_sel)]
+    if 'q' in locals():
+        text = (fdf["title"] + " " + fdf["organisation"] + " " + fdf["summary"]).fillna("")
+        if q:
+            if HAS_RAPIDFUZZ:
+                matches = process.extract(q, text.tolist(), scorer=fuzz.WRatio, limit=len(text))
+                keep = [i for _, s, i in matches if s >= 60]
+                fdf = fdf.iloc[keep]
+            else:
+                fdf = fdf[text.str.contains(q, case=False, na=False)]
 
     st.info(f"{len(fdf)} strategies shown")
     if not fdf.empty:
@@ -424,8 +401,15 @@ with tab_lenses:
     st.subheader("👁️ Set your profiles across the Ten Lenses")
     st.caption("0 = left label • 100 = right label. Use the left column for CURRENT, right for TARGET.")
 
-    # Add the explainer right here
-    render_lenses_explainer()
+    st.markdown("_Use the expanders below for practical examples on when to lean left/right._")
+    for dim, left, right in AXES:
+        ex = LENSES_EXAMPLES.get(dim, {})
+        with st.expander(f"{dim} — {left} ↔ {right}"):
+            st.markdown(f"- **{left}:** {ex.get('left','')}")
+            st.markdown(f"- **{right}:** {ex.get('right','')}")
+            st.markdown(f"- **Lean {left.lower()} when:** {ex.get('when_left','')}")
+            st.markdown(f"- **Lean {right.lower()} when:** {ex.get('when_right','')}")
+            st.markdown(f"- **Example:** {ex.get('example','')}")
 
     ensure_sessions()
     colL, colR = st.columns(2)
@@ -458,8 +442,7 @@ with tab_lenses:
                            data=json.dumps(st.session_state["_target_scores"], indent=2).encode("utf-8"),
                            file_name="target_profile.json", mime="application/json")
 
-    # Side-by-side radar
-    dims = DIMENSIONS
+    dims = [a[0] for a in AXES]
     cur01 = [st.session_state["_current_scores"][d]/100 for d in dims]
     tgt01 = [st.session_state["_target_scores"][d]/100 for d in dims]
     fig = go.Figure()
@@ -475,11 +458,10 @@ with tab_journey:
     st.subheader("🧭 Journey — compare current vs target and prioritise")
     st.caption("Signed change: negative = move toward LEFT label; positive = move toward RIGHT label.")
 
-    dims = DIMENSIONS
+    dims = [a[0] for a in AXES]
     current = st.session_state.get("_current_scores", {d:50 for d in dims})
     target = st.session_state.get("_target_scores", {d:50 for d in dims})
 
-    # Gap table
     gap_rows = []
     for d, left_lbl, right_lbl in AXES:
         diff = target[d] - current[d]
@@ -495,7 +477,6 @@ with tab_journey:
                  title="Signed change needed (− move left • + move right)")
     st.plotly_chart(bar, use_container_width=True)
 
-    # Top 3 priorities
     TOP_N = 3
     top = gap_df.head(TOP_N)
     if len(top):
@@ -511,10 +492,3 @@ with tab_journey:
         st.markdown("\n".join(bullets))
     else:
         st.info("Current and target are identical — no change required.")
-
-# ====================================================
-# ℹ️ ABOUT
-# ====================================================
-with tab_about:
-    render_about_tab_full(tab_about, AXES)
-
