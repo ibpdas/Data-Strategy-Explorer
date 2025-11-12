@@ -1,12 +1,13 @@
 
 # ---------------------------------------------------
-# Public Sector Data Strategy Explorer — Landing Page Build
-# v1.7 – 2025-11-12 13:35 (landing)
+# Public Sector Data Strategy Explorer — GOV-look Theme
+# v1.8 – 2025-11-12 14:10 (govlook)
 # ---------------------------------------------------
-import os, glob, time, io, json, hashlib, base64
+import os, glob, time, io, json, hashlib
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 try:
@@ -15,34 +16,81 @@ try:
 except Exception:
     HAS_RAPIDFUZZ = False
 
-APP_VERSION = "v1.7 – 2025-11-12 13:35 (landing)"
+APP_VERSION = "v1.8 – 2025-11-12 14:10 (govlook)"
 
 st.set_page_config(page_title="Public Sector Data Strategy Explorer", layout="wide")
-st.markdown(f"💡 **App version:** {APP_VERSION}")
-st.title("Public Sector Data Strategy Explorer")
-st.caption("Balance the ten tensions. Profile your current vs target. Plan the journey.")
 
-# --- Simple brand accent (CSS) ---
-ACCENT = "#0072CE"  # Gov blue
+# ---------------- THEME (inspired by UK public-service digital design) ----------------
+PRIMARY = "#1d70b8"   # blue
+DARK = "#0b0c0c"      # near-black
+LIGHT = "#f3f2f1"     # light grey
+ACCENT = "#28a197"    # teal
+
 st.markdown(f"""
 <style>
-/* Top accent bar */
-.app-top-bar {{
-  position: fixed; top:0; left:0; right:0; height:4px; background:{ACCENT}; z-index:1000;
+/* Header bar */
+.header-bar {{
+  background:{DARK};
+  border-bottom:8px solid {PRIMARY};
+  padding:0.75rem 1rem;
+  margin:-3rem -3rem 1rem -3rem; /* stretch to edges */
 }}
-.block-container {{ padding-top: 1.4rem; }}
-.badge {{
-  display:inline-block; padding:2px 8px; border-radius:999px; background:{ACCENT}15; color:{ACCENT}; font-size:0.8rem; margin-right:6px;
+.header-bar h1 {{
+  color:white; margin:0; font-size:1.6rem; font-weight:700;
+  font-family:"Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
 }}
-.hero h1 {{ margin-bottom:0.2rem !important; }}
-.hero .subtitle {{ color:#444; font-size:1.05rem; }}
+.header-bar .sub {{
+  color:#dcdcdc; font-size:0.95rem; margin-top:0.2rem;
+}}
+
+/* Body defaults */
+body, .block-container {{
+  color:{DARK};
+  font-family:"Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+}}
+a, a:visited {{ color:{PRIMARY}; }}
+a:hover {{ color:#003078; }}
+
+/* Cards */
 .card {{
-  border:1px solid #EEE; border-radius:12px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  background:white; border:1px solid #e5e5e5; border-radius:8px;
+  padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.03); height:100%;
 }}
-.smallmuted {{ color:#6b6b6b; font-size:0.85rem; }}
+.card h3 {{ margin-top:0; }}
+.card .desc {{ color:#505a5f; font-size:0.95rem; }}
+
+/* Info panel */
+.info-panel {{
+  background:{LIGHT}; border-left:5px solid {PRIMARY}; padding:1rem; margin:0.5rem 0 1rem 0;
+}}
+
+/* Buttons and inputs */
+.stButton>button {{
+  background:{PRIMARY}; color:white; border-radius:0; border:none; font-weight:600;
+}}
+.stButton>button:hover {{ background:#003078; }}
+
+/* Footer */
+.footer {{
+  color:#505a5f; font-size:0.85rem; text-align:center; margin-top:1.2rem;
+}}
 </style>
-<div class="app-top-bar"></div>
+<div class="header-bar">
+  <h1>Public Sector Data Strategy Explorer</h1>
+  <div class="sub">Design better data strategies, faster — balance tensions, align leadership, and plan change.</div>
+</div>
 """, unsafe_allow_html=True)
+
+# Plotly theme
+pio.templates["govlook"] = pio.templates["simple_white"]
+pio.templates["govlook"].layout.colorway = [PRIMARY, ACCENT, "#d4351c", "#f47738", "#00703c", "#4c2c92"]
+pio.templates["govlook"].layout.font.family = "Noto Sans"
+pio.templates["govlook"].layout.font.color = DARK
+pio.templates["govlook"].layout.title.font.size = 18
+pio.templates.default = "govlook"
+
+# Version tag (small)
+st.caption(f"Build: {APP_VERSION}")
 
 REQUIRED = [
     "id","title","organisation","org_type","country","year","scope",
@@ -87,7 +135,6 @@ if "uploaded_bytes" in st.session_state:
 elif default_csv:
     df = load_data_from_path(default_csv, file_md5(default_csv), APP_VERSION)
 else:
-    # If no data yet, create an empty df with required columns (so Home still renders)
     df = pd.DataFrame(columns=REQUIRED)
 
 # ---------------- Model: Ten Lenses ----------------
@@ -115,8 +162,6 @@ def ensure_sessions():
         st.session_state["_current_scores"] = {d:50 for d in DIMENSIONS}
     if "_target_scores" not in st.session_state:
         st.session_state["_target_scores"] = {d:50 for d in DIMENSIONS}
-    if "_active_tab" not in st.session_state:
-        st.session_state["_active_tab"] = "Home"
 
 def fuzzy(df_in, q, limit=400):
     if not q: return df_in
@@ -131,7 +176,7 @@ def fuzzy(df_in, q, limit=400):
 
 # ---------------- Explore charts ----------------
 def render_explore_charts(fdf: pd.DataFrame):
-    st.markdown("## 📊 Explore — Landscape & Patterns")
+    st.markdown("## Explore — landscape & patterns")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Strategies", len(fdf))
     k2.metric("Countries", fdf["country"].nunique() if "country" in fdf.columns else 0)
@@ -209,85 +254,56 @@ def render_explore_charts(fdf: pd.DataFrame):
 # ---------------- Tabs ----------------
 ensure_sessions()
 tab_home, tab_explore, tab_lenses, tab_journey, tab_about = st.tabs(
-    ["🏠 Home", "🔎 Explore", "👁️ Lenses (Set Profiles)", "🧭 Journey (Compare)", "ℹ️ About"]
+    ["Home", "Explore", "Lenses", "Journey", "About"]
 )
 
 # ====================================================
-# 🏠 HOME (Landing)
+# 🏠 HOME (introductory, non-clickable cards)
 # ====================================================
 with tab_home:
-    st.markdown('<div class="hero">', unsafe_allow_html=True)
-    st.header("Design better data strategies, faster.")
-    st.markdown('<div class="subtitle">Make trade‑offs explicit, align leadership, and turn gaps into action.</div>', unsafe_allow_html=True)
-    st.markdown('<span class="badge">Public sector</span> <span class="badge">Ten lenses</span> <span class="badge">Compare journeys</span>', unsafe_allow_html=True)
-
-    cta1, cta2, cta3 = st.columns([1,1,1])
-    with cta1:
-        if st.("Start with Explore →"):
-            st.session_state["_active_tab"] = "Explore"
-            st.rerun()
-    with cta2:
-        if st.button("Set your Profiles →"):
-            st.session_state["_active_tab"] = "Lenses"
-            st.rerun()
-    with cta3:
-        if st.button("See the Journey →"):
-            st.session_state["_active_tab"] = "Journey"
-            st.rerun()
-
-    st.markdown("### What’s inside")
-    colA, colB, colC = st.columns(3)
-    with colA:
-        st.markdown("""
-<div class="card">
-**Explore**  
-Filter strategies by year, country, org type; see patterns, maps, timelines; review details.
-</div>
-""", unsafe_allow_html=True)
-    with colB:
-        st.markdown("""
-<div class="card">
-**Lenses**  
-Ten strategic tensions: set **Current** vs **Target** using sliders; download profiles.
-</div>
-""", unsafe_allow_html=True)
-    with colC:
-        st.markdown("""
-<div class="card">
-**Journey**  
-Gap analysis with radar + bars; auto‑prioritise top shifts; turn into actions.
+    st.markdown(f"""
+<div class="info-panel">
+<strong>Purpose:</strong> Compare and calibrate public‑sector data strategies. Explore trends, test trade‑offs with the Ten Lenses, and plan your journey from current to target.
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown("### Quick status")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f"""
+<div class="card">
+<h3>Explore</h3>
+<p class="desc">See patterns in real strategies — by year, country, organisation type and scope. Maps, timelines and composition views give fast context.</p>
+</div>
+""", unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+<div class="card">
+<h3>Lenses</h3>
+<p class="desc">Define your <strong>current</strong> vs <strong>target</strong> profile across ten strategic tensions — governance, ambition, access, and more — using clear sliders.</p>
+</div>
+""", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+<div class="card">
+<h3>Journey</h3>
+<p class="desc">Compare profiles to see direction and magnitude of change. Prioritise the top shifts and turn them into actions and milestones.</p>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("---")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Rows loaded", len(df))
     k2.metric("Countries", df["country"].nunique() if "country" in df.columns else 0)
     k3.metric("Org types", df["org_type"].nunique() if "org_type" in df.columns else 0)
-    k4.metric("Last updated", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) )
-
-    st.markdown("---")
-    st.markdown("""
-**Changelog**  
-- v1.7 (today): Added Home landing with CTAs, status, and badges; minor styling.  
-- v1.6: Moved data source to Explore expander; sidebar shows only filters.  
-- v1.5: Reverted tabs; embedded About content; improved cache-busting for CSV.
-""")
-
-# (Tab jump disabled to avoid URL param issues in some Streamlit versions)
+    k4.metric("Last updated", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 
 # ====================================================
 # 🔎 EXPLORE
 # ====================================================
 with tab_explore:
-    # Datasource expander in Explore
-    with st.expander("📁 Data source & reload", expanded=False):
+    with st.expander("Data source & reload", expanded=False):
         uploaded = st.file_uploader("Upload a strategies CSV", type=["csv"], key="uploader_main")
-        st.caption("CSV must include required columns. Use the template below if needed.")
-        st.download_button("Download template CSV", data=(
-            "id,title,organisation,org_type,country,year,scope,link,summary,source,date_added\n"
-            "1,Example Strategy,Example Dept,Ministry,UK,2024,National,https://example.com,Short summary...,Official site,2024-11-12\n"
-        ).encode("utf-8"), file_name="strategies_template.csv", mime="text/csv")
+        st.caption("CSV must include required columns.")
 
         st.markdown("---")
         csv_files_local = sorted([f for f in glob.glob('*.csv') if os.path.isfile(f)])
@@ -307,10 +323,10 @@ with tab_explore:
             st.info("No CSV files found in directory. Upload one above.")
 
         cols = st.columns(2)
-        if cols[0].button("🔄 Reload (clear cache)"):
+        if cols[0].button("Reload (clear cache)"):
             st.cache_data.clear()
             st.rerun()
-        if cols[1].button("🧹 Hard refresh (cache + state)"):
+        if cols[1].button("Hard refresh (cache + state)"):
             st.cache_data.clear()
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
@@ -322,12 +338,11 @@ with tab_explore:
                 df_new = load_data_from_bytes(content, bytes_md5(content), APP_VERSION)
                 st.session_state["uploaded_bytes"] = content
                 st.cache_data.clear()
-                st.success(f"Loaded uploaded CSV — {len(df_new)} rows (MD5 {bytes_md5(content)[:12]}…)")
+                st.success(f"Loaded uploaded CSV — {len(df_new)} rows")
                 st.rerun()
             except Exception as e:
                 st.error(f"Upload error: {e}")
 
-    # Sidebar shows only filters
     with st.sidebar:
         st.subheader("Filters")
         years = sorted(y for y in df["year"].dropna().unique())
@@ -360,7 +375,7 @@ with tab_explore:
         render_explore_charts(fdf)
         st.markdown("### Details")
         for _, r in fdf.iterrows():
-            with st.expander(f"📄 {r['title']} — {r['organisation']} ({int(r['year']) if pd.notna(r['year']) else '—'})"):
+            with st.expander(f"{r['title']} — {r['organisation']} ({int(r['year']) if pd.notna(r['year']) else '—'})"):
                 st.write(r["summary"] or "_No summary provided._")
                 meta = st.columns(4)
                 meta[0].write(f"**Org type:** {r['org_type']}")
@@ -374,8 +389,8 @@ with tab_explore:
 # 👁️ LENSES (SET PROFILES)
 # ====================================================
 with tab_lenses:
-    st.subheader("👁️ Set your profiles across the Ten Lenses")
-    st.caption("0 = left label • 100 = right label. Use the left column for CURRENT, right for TARGET.")
+    st.subheader("Set your profiles across the Ten Lenses")
+    st.caption("0 = left label • 100 = right label. Left column = Current, Right = Target.")
 
     ensure_sessions()
     colL, colR = st.columns(2)
@@ -421,20 +436,20 @@ with tab_lenses:
 # 🧭 JOURNEY (COMPARE)
 # ====================================================
 with tab_journey:
-    st.subheader("🧭 Journey — compare current vs target and prioritise")
+    st.subheader("Journey — compare and prioritise")
     st.caption("Signed change: negative = move toward LEFT label; positive = move toward RIGHT label.")
 
     dims = [a[0] for a in AXES]
     current = st.session_state.get("_current_scores", {d:50 for d in dims})
     target = st.session_state.get("_target_scores", {d:50 for d in dims})
 
-    gap_rows = []
+    rows = []
     for d, left_lbl, right_lbl in AXES:
         diff = target[d] - current[d]
         mag = abs(diff)
         direction = f"→ **{right_lbl}**" if diff>0 else (f"→ **{left_lbl}**" if diff<0 else "—")
-        gap_rows.append({"Lens": d, "Current": current[d], "Target": target[d], "Change needed": diff, "Magnitude": mag, "Direction": direction})
-    gap_df = pd.DataFrame(gap_rows).sort_values("Magnitude", ascending=False)
+        rows.append({"Lens": d, "Current": current[d], "Target": target[d], "Change needed": diff, "Magnitude": mag, "Direction": direction})
+    gap_df = pd.DataFrame(rows).sort_values("Magnitude", ascending=False)
 
     st.markdown("#### Gap by lens (largest first)")
     st.dataframe(gap_df[["Lens","Current","Target","Change needed","Direction"]], use_container_width=True)
@@ -443,14 +458,14 @@ with tab_journey:
                  title="Signed change needed (− move left • + move right)")
     st.plotly_chart(bar, use_container_width=True)
 
-    TOP_N = 3
-    top = gap_df.head(TOP_N)
+    top = gap_df.head(3)
     if len(top):
-        st.markdown(f"#### Priority shifts (top {TOP_N})")
+        st.markdown("#### Priority shifts (top 3)")
         bullets = []
         for _, row in top.iterrows():
             d = row["Lens"]; diff = row["Change needed"]
-            left_lbl, right_lbl = [a[1] for a in AXES if a[0]==d][0], [a[2] for a in AXES if a[0]==d][0]
+            left_lbl = [a[1] for a in AXES if a[0]==d][0]
+            right_lbl = [a[2] for a in AXES if a[0]==d][0]
             if diff > 0:
                 bullets.append(f"- **{d}**: shift toward **{right_lbl}** (+{int(diff)} pts)")
             elif diff < 0:
@@ -460,7 +475,7 @@ with tab_journey:
         st.info("Current and target are identical — no change required.")
 
 # ====================================================
-# ℹ️ ABOUT — embedded as requested earlier
+# ℹ️ ABOUT — your provided content
 # ====================================================
 with tab_about:
 
@@ -506,12 +521,12 @@ It combines a searchable dataset of real strategies with a conceptual framework 
 | # | Lens | Description | Public-Sector Example |
 |---|------|-------------|----------------------|
 | **1** | **Abstraction Level** | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Blueprint” is logical/physical. |
-| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK’s AI white paper is living; GDPR is fixed. |
+| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK's AI white paper is living; GDPR is fixed. |
 | **3** | **Ambition** | **Essential** ensures foundations; **Transformational** drives innovation and automation. | NHS data governance reforms are essential; Estonia’s X-Road is transformational. |
 | **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | A cross-government maturity model vs a sector-specific pilot. |
-| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | UK’s federated CDO network vs Singapore’s Smart Nation. |
+| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | Federated CDO network vs a centralised Smart Nation-style approach. |
 | **6** | **Orientation** | **Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
-| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | GDPR compliance vs data-sharing sandboxes. |
+| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | Privacy-by-design vs data-sharing sandboxes. |
 | **8** | **Access Philosophy** | **Democratised** broadens data access; **Controlled** enforces permissions. | Open data portals vs restricted health datasets. |
 | **9** | **Delivery Mode** | **Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
 | **10** | **Decision Model** | **Data-informed** blends human judgment; **Data-driven** relies on analytics/automation. | Evidence-based policymaking vs automated fraud detection. |
@@ -536,3 +551,11 @@ Use the **Lenses** tab — each lens includes when to lean left/right and a conc
             st.markdown("> **“Every data strategy is a balancing act — between governance and growth, structure and experimentation, control and creativity.”**")
 
     render_about_tab_full(tab_about, AXES)
+
+# ---------------- Footer ----------------
+st.markdown("""
+---
+<div class="footer">
+This prototype is created for learning and exploration. It is not an official service.
+</div>
+""", unsafe_allow_html=True)
