@@ -11,8 +11,6 @@
 
 An open, insight driven repository of **UK public sector data strategies, playbooks, and lessons learned** — helping data leaders compare, learn, and write better strategies.
 
- [📊 Strategy Explorer Dashboard](https://public-sector-data-strategies.streamlit.app) 
-
 ---
 
 ## Purpose
