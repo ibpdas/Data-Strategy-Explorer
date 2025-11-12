@@ -223,7 +223,7 @@ with tab_home:
 
     cta1, cta2, cta3 = st.columns([1,1,1])
     with cta1:
-        if st.button("Start with Explore →"):
+        if st.("Start with Explore →"):
             st.session_state["_active_tab"] = "Explore"
             st.rerun()
     with cta2:
