@@ -1,7 +1,5 @@
 # ---------------------------------------------------
 # Public Sector Data Strategy Explorer
-# GOV-look theme + Maturity + Lenses + Journey
-# Semantic (AI-style) search + Resources tab
 # ---------------------------------------------------
 import os
 import glob
@@ -26,7 +24,7 @@ except Exception:
     HAS_EMBED = False
     SentenceTransformer = None
 
-APP_VERSION = "v3.0 – 2025-11-13"
+APP_VERSION = "v3.1 – 2025-11-13"
 
 # ---------------- PAGE CONFIG & THEME ----------------
 st.set_page_config(
@@ -35,9 +33,9 @@ st.set_page_config(
 )
 
 PRIMARY = "#1d70b8"  # GOV-style blue
-DARK = "#0b0c0c"  # near-black
-LIGHT = "#f3f2f1"  # light grey
-ACCENT = "#28a197"  # teal
+DARK = "#0b0c0c"     # near-black
+LIGHT = "#f3f2f1"    # light grey
+ACCENT = "#28a197"   # teal
 RED = "#d4351c"
 
 st.markdown(
@@ -193,20 +191,8 @@ else:
     df = pd.DataFrame(columns=REQUIRED)
 
 # ---------------- LENSES & MATURITY ----------------
-AXES = [
-    ("Abstraction Level", "Conceptual", "Logical / Physical"),
-    ("Adaptability", "Living", "Fixed"),
-    ("Ambition", "Essential", "Transformational"),
-    ("Coverage", "Horizontal", "Use-case-based"),
-    ("Governance Structure", "Ecosystem / Federated", "Centralised"),
-    ("Orientation", "Technology-focused", "Value-focused"),
-    ("Motivation", "Compliance-driven", "Innovation-driven"),
-    ("Access Philosophy", "Data-democratised", "Controlled access"),
-    ("Delivery Mode", "Incremental", "Big Bang"),
-    ("Decision Model", "Data-informed", "Data-driven"),
-]
-DIMENSIONS = [a[0] for a in AXES]
 
+# Government data maturity themes (CDDO)
 MATURITY_THEMES = [
     (
         "Uses",
@@ -234,6 +220,7 @@ MATURITY_THEMES = [
     ),
 ]
 
+# Official government levels 1–5
 MATURITY_SCALE = {
     1: "Beginning",
     2: "Emerging",
@@ -243,11 +230,29 @@ MATURITY_SCALE = {
 }
 
 
-
 def maturity_label(avg: float) -> str:
+    """
+    Map the average (1–5) to the nearest official maturity level.
+    """
     idx = int(round(avg))
     idx = max(1, min(5, idx))
     return MATURITY_SCALE[idx]
+
+
+# Ten Lenses
+AXES = [
+    ("Abstraction Level", "Conceptual", "Logical / Physical"),
+    ("Adaptability", "Living", "Fixed"),
+    ("Ambition", "Essential", "Transformational"),
+    ("Coverage", "Horizontal", "Use-case-based"),
+    ("Governance Structure", "Ecosystem / Federated", "Centralised"),
+    ("Orientation", "Technology-focused", "Value-focused"),
+    ("Motivation", "Compliance-driven", "Innovation-driven"),
+    ("Access Philosophy", "Data-democratised", "Controlled access"),
+    ("Delivery Mode", "Incremental", "Big Bang"),
+    ("Decision Model", "Data-informed", "Data-driven"),
+]
+DIMENSIONS = [a[0] for a in AXES]
 
 
 def radar_trace(values01, dims, name, opacity=0.6, fill=True):
@@ -259,25 +264,22 @@ def radar_trace(values01, dims, name, opacity=0.6, fill=True):
 
 
 def ensure_sessions():
-    # maturity
     if "_maturity_scores" not in st.session_state:
         st.session_state["_maturity_scores"] = {k: 3 for k, _ in MATURITY_THEMES}
-    # tensions
     if "_current_scores" not in st.session_state:
         st.session_state["_current_scores"] = {d: 50 for d in DIMENSIONS}
     if "_target_scores" not in st.session_state:
         st.session_state["_target_scores"] = {d: 50 for d in DIMENSIONS}
-    # actions
     if "_actions_df" not in st.session_state:
         st.session_state["_actions_df"] = pd.DataFrame(
             columns=["Priority", "Lens", "Direction", "Owner", "Timeline", "Metric", "Status"]
         )
 
 
-# ---------------- SIMPLE & SEMANTIC SEARCH ----------------
+# ---------------- SEARCH HELPERS ----------------
 def simple_search(df_in: pd.DataFrame, query: str) -> pd.DataFrame:
     """
-    Very simple case-insensitive search over key text columns.
+    Simple case-insensitive search over key text columns.
     """
     if not query:
         return df_in
@@ -323,7 +325,6 @@ def compute_strategy_embeddings(df_in: pd.DataFrame, app_version: str):
         convert_to_numpy=True,
         normalize_embeddings=True,
     )
-    # Return as DataFrame for easy alignment by index
     emb_df = pd.DataFrame(embeddings, index=df_in.index)
     return emb_df
 
@@ -341,9 +342,8 @@ def semantic_search(fdf: pd.DataFrame, emb_df: pd.DataFrame, query: str, top_k: 
         return fdf
 
     q_emb = model.encode([query], convert_to_numpy=True, normalize_embeddings=True)[0]
-    # Align embeddings to filtered subset
-    sub_emb = emb_df.loc[fdf.index].values  # shape (n, d)
-    sims = sub_emb @ q_emb  # cosine similarity
+    sub_emb = emb_df.loc[fdf.index].values
+    sims = sub_emb @ q_emb
 
     order = np.argsort(-sims)
     order = order[: min(top_k, len(order))]
@@ -354,93 +354,119 @@ def semantic_search(fdf: pd.DataFrame, emb_df: pd.DataFrame, query: str, top_k: 
 
 emb_df = compute_strategy_embeddings(df, APP_VERSION)
 
-# ---------------- HINTS & CONFLICT RULES ----------------
-def hint_for_lens(lens_name, maturity_avg, maturity_stage):
-    m = maturity_avg
+# ---------------- HINTS & CONFLICTS ----------------
+def hint_for_lens(lens_name, maturity_avg, maturity_level_name=None):
+    """
+    Give contextual hints based on the organisation's overall maturity level.
+    Uses government levels: Beginning, Emerging, Learning, Developing, Mastering.
+    """
+    level = maturity_level_name or maturity_label(maturity_avg)
+    low = level in ("Beginning", "Emerging")
+    mid = level in ("Learning", "Developing")
+    high = level == "Mastering"
+
     if lens_name == "Governance Structure":
-        return (
-            "At lower maturity, stronger central coordination often succeeds before moving to federated models."
-            if m < 3
-            else "With higher maturity, federation can unlock autonomy — guard against fragmentation with shared standards."
-        )
+        if low:
+            return "At Beginning/Emerging, stronger central coordination usually works best before moving to federated models."
+        if mid:
+            return "At Learning/Developing, you can gradually federate – keep common standards and shared services."
+        if high:
+            return "At Mastering, federation can unlock autonomy – but guard against fragmentation with shared guardrails."
     if lens_name == "Delivery Mode":
-        return (
-            "Favour incremental delivery to build foundations and reduce risk."
-            if m < 3
-            else "Big-bang change can work with strong programme discipline and stable platforms."
-        )
+        if low:
+            return "Favour incremental delivery to build confidence and reduce risk – avoid a single big-bang change."
+        if mid:
+            return "Blend incremental delivery with a few larger change packages where foundations are solid."
+        if high:
+            return "At Mastering, big-bang change is possible – but only with strong programme discipline and clear benefits."
     if lens_name == "Access Philosophy":
-        return (
-            "Broader access is attractive; start with role-based sharing and trusted datasets."
-            if m < 3
-            else "Democratisation drives reuse — keep controls for sensitive domains."
-        )
+        if low:
+            return "Start with role-based access to a small number of trusted datasets before opening up more widely."
+        if mid:
+            return "Broaden access with good catalogue/search – keep tight controls around sensitive domains."
+        if high:
+            return "Push democratisation further – but make sure data protection and audit trails stay robust."
     if lens_name == "Decision Model":
-        return (
-            "Data-informed decisions with human oversight are safer while foundations and skills grow."
-            if m < 3
-            else "Automated / data-driven decisions need strong governance and monitoring."
-        )
+        if low:
+            return "Data-informed decisions with clear human oversight are safest while skills and quality are still building."
+        if mid:
+            return "Increase automation in low-risk areas – keep humans in the loop for high-impact decisions."
+        if high:
+            return "Mastering orgs can rely more on data-driven decisions – but need strong monitoring and fallback plans."
     if lens_name == "Motivation":
-        return (
-            "Compliance-first reduces risk while building capability — pilot innovation safely."
-            if m < 3
-            else "Innovation thrives with mature controls; use sandboxes and guardrails."
-        )
+        if low:
+            return "Keep compliance at the core while you pilot innovation in tightly scoped sandboxes."
+        if mid:
+            return "Balance compliance and innovation – use proof-of-concepts to justify broader change."
+        if high:
+            return "At Mastering, innovation and compliance can reinforce each other via strong governance by design."
     if lens_name == "Ambition":
-        return (
-            "Focus on essentials (quality, governance, platforms) before heavy transformation."
-            if m < 3
-            else "Transformation is viable; align to outcomes and operating model."
-        )
-    if lens_name == "Orientation":
-        return (
-            "Platform investments may dominate early; tie them to clear value quickly."
-            if m < 3
-            else "Keep value in the lead; avoid tech for tech’s sake."
-        )
+        if low:
+            return "Focus on essentials – data quality, governance, core platforms – before promising transformational change."
+        if mid:
+            return "You can mix foundational work with some transformational strands where benefits are clear."
+        if high:
+            return "Aim for transformational impact – but keep benefits and operating model changes clearly articulated."
     if lens_name == "Coverage":
-        return (
-            "Use exemplar use-cases to prove value while maturing foundations."
-            if m < 3
-            else "Broaden capability horizontally to avoid islands of excellence."
-        )
+        if low:
+            return "Use a few high-impact use-cases to prove value while you build broader capabilities."
+        if mid:
+            return "Begin to spread capabilities horizontally to avoid islands of excellence."
+        if high:
+            return "Horizontal coverage makes sense – but choose a few flagship use-cases to anchor the narrative."
+    if lens_name == "Orientation":
+        if low:
+            return "Platform and tooling investments will dominate early – link them clearly to outcomes."
+        if mid:
+            return "Balance platform work with visible value – avoid tech for tech’s sake."
+        if high:
+            return "Keep value firmly in the lead, with platforms treated as enablers rather than ends."
     if lens_name == "Adaptability":
-        return (
-            "Have a stable core with a small living layer; avoid constant churn."
-            if m < 3
-            else "Treat strategy as living — iterate governance and platforms prudently."
-        )
+        if low:
+            return "Keep a stable core with a small living layer – too much churn can confuse people."
+        if mid:
+            return "Treat the strategy as living – schedule periodic reviews and small course corrections."
+        if high:
+            return "Mastering orgs can iterate often – just make sure changes are well-governed and communicated."
     if lens_name == "Abstraction Level":
-        return (
-            "Keep vision concise and translate quickly into practical architecture and controls."
-            if m < 3
-            else "Balance vision with executable roadmaps and ownership."
-        )
+        if low:
+            return "Keep the strategy concise and vision-led, but quickly translate into practical roadmaps and controls."
+        if mid:
+            return "Balance vision with enough logical detail to guide delivery teams."
+        if high:
+            return "You can afford a more detailed logical/physical description – but avoid over-specifying too early."
+
     return ""
 
 
 def conflict_for_target(lens_name, target_score, maturity_avg):
-    m = maturity_avg
-    # low maturity: warn if ambition too high / risky
-    if lens_name == "Delivery Mode" and target_score >= 70 and m < 3:
-        return "Big-bang at lower maturity is high risk — consider phased delivery."
-    if lens_name == "Governance Structure" and target_score <= 30 and m < 3:
-        # 0 ~ Ecosystem/Federated; 100 ~ Centralised
-        return "Federated at lower maturity can fragment standards — strengthen central controls first."
-    if lens_name == "Access Philosophy" and target_score <= 30 and m < 3:
-        return "Wide democratisation needs strong basics — start with controlled, role-based access."
-    if lens_name == "Decision Model" and target_score >= 70 and m < 3:
-        return "Highly data-driven decisions need robust data quality, monitoring, and skills."
-    if lens_name == "Motivation" and target_score >= 70 and m < 3:
-        return "Innovation-first without guardrails can raise risk — keep compliance in the loop."
+    """
+    Flag misalignments between maturity and ambitious targets.
+    target_score is 0–100 toward right label.
+    """
+    level = maturity_label(maturity_avg)
+    low = level in ("Beginning", "Emerging")
+    highish = level in ("Developing", "Mastering")  # treat Learning as middle
 
-    # high maturity: warn if overly conservative
-    if m >= 4 and lens_name in ["Delivery Mode", "Governance Structure", "Access Philosophy"]:
+    # Low maturity: warn if target is very ambitious/risky
+    if low:
+        if lens_name == "Delivery Mode" and target_score >= 70:
+            return "Big-bang at Beginning/Emerging maturity is high risk — consider phased delivery."
+        if lens_name == "Governance Structure" and target_score <= 30:
+            return "Federated at low maturity can fragment standards — strengthen central controls first."
+        if lens_name == "Access Philosophy" and target_score <= 30:
+            return "Wide democratisation needs strong basics — start with controlled, role-based access."
+        if lens_name == "Decision Model" and target_score >= 70:
+            return "Highly data-driven decisions need robust data quality, monitoring and skills."
+        if lens_name == "Motivation" and target_score >= 70:
+            return "Innovation-first without guardrails can raise risk — keep compliance in the loop."
+
+    # High-ish maturity: warn if overly conservative
+    if highish:
         if lens_name == "Delivery Mode" and target_score <= 30:
-            return "With advanced maturity, overly incremental change may under-deliver benefits."
+            return "At Developing/Mastering, being too incremental may under-deliver benefits."
         if lens_name == "Governance Structure" and target_score >= 80:
-            return "Highly centralised models may slow teams at advanced maturity — consider selective federation."
+            return "Highly centralised models may slow teams at higher maturity — consider selective federation."
         if lens_name == "Access Philosophy" and target_score >= 80:
             return "Excessive control may limit value realisation — revisit openness where safe."
 
@@ -575,10 +601,10 @@ def render_explore_charts(fdf: pd.DataFrame):
         st.plotly_chart(fig_scope, use_container_width=True)
 
 
-# ---------------- TABS ----------------
+# ---------------- TABS SETUP ----------------
 ensure_sessions()
 tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_about = st.tabs(
-    ["Home", "Explore", "Lenses", "Journey", "Actions", "Resources", "About"]
+    ["Home", "Explore", "Lenses", "Journey", "Actions & Export", "Resources", "About"]
 )
 
 # ====================================================
@@ -588,8 +614,7 @@ with tab_home:
     st.markdown(
         """
 <div class="info-panel">
-<strong>Quick start:</strong>
-Begin with <strong>Lenses → Maturity</strong> to understand your current readiness,
+<strong>Quick start:</strong> Begin with <strong>Lenses → Maturity</strong> to understand your current readiness,
 then set your strategic tensions and review the Journey.
 </div>
 """,
@@ -616,7 +641,7 @@ Maps, timelines and composition views give fast context.
 <div class="card">
 <h3>Lenses</h3>
 <p class="desc">
-<strong>Step 1:</strong> Self-diagnose maturity across six themes.<br>
+<strong>Step 1:</strong> Self-diagnose maturity across six government themes.<br>
 <strong>Step 2:</strong> Set <em>Current vs Target</em> positions across Ten Lenses,
 with hints and conflict flags.
 </p>
@@ -643,8 +668,18 @@ action log with owners, timelines and metrics.
     k1.metric("Rows loaded", len(df))
     k2.metric("Countries", df["country"].nunique() if "country" in df.columns else 0)
     k3.metric("Org types", df["org_type"].nunique() if "org_type" in df.columns else 0)
-    k4.metric(
-        "Last updated", time.strftime("%Y-%m-%d", time.localtime())
+    k4.metric("Last updated", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+
+    st.markdown("---")
+    st.markdown("### How to use this explorer")
+    st.markdown(
+        """
+1. **Explore** — get a feel for what other organisations are doing (by year, country, org type, scope).  
+2. **Assess maturity** — use the six government themes (Uses, Data, Leadership, Culture, Tools, Skills) to agree where you are today.  
+3. **Set tensions** — define Current vs Target on the Ten Lenses and see where the biggest shifts are.  
+4. **Review the journey** — focus on the 3–5 most important shifts and check for conflicts with your maturity.  
+5. **Capture actions** — export a small action log and plug it into your programme plan or OKRs.
+"""
     )
 
 # ====================================================
@@ -731,15 +766,19 @@ with tab_explore:
         scopes = sorted([v for v in df["scope"].unique() if v != ""])
         scope_sel = st.multiselect("Scope", scopes, default=scopes)
 
-        q = st.text_input("Search or describe strategies you're looking for")
-        use_semantic = st.checkbox(
-            "Use AI semantic search (beta)",
-            value=bool(emb_df is not None),
-            disabled=emb_df is None,
-            help="Semantic search uses an embedding model to find similar strategies by meaning.",
+        q = st.text_input(
+            "Search or describe strategies",
+            placeholder="e.g. 'federated data strategy for small countries' or 'AI ethics framework'",
         )
-        if emb_df is None and HAS_EMBED is False:
-            st.caption("Install 'sentence-transformers' to enable semantic search.")
+
+        search_mode = st.radio(
+            "Search mode",
+            options=["Keyword", "AI semantic"],
+            index=1 if emb_df is not None else 0,
+            help="Keyword search looks for exact text matches. AI semantic search finds similar strategies by meaning.",
+        )
+        if emb_df is None and search_mode == "AI semantic":
+            st.caption("Install 'sentence-transformers' to enable AI semantic search.")
 
     fdf = df.copy()
     if yr:
@@ -752,7 +791,7 @@ with tab_explore:
         fdf = fdf[fdf["scope"].isin(scope_sel)]
 
     if q:
-        if use_semantic and emb_df is not None:
+        if search_mode == "AI semantic" and emb_df is not None:
             st.caption("Semantic search active (AI-based similarity).")
             fdf = semantic_search(fdf, emb_df, q, top_k=100)
         else:
@@ -785,10 +824,6 @@ with tab_explore:
 # ====================================================
 # 👁️ LENSES (Maturity → Tensions)
 # ====================================================
-
-# ====================================================
-# 👁️ LENSES (Maturity → Tensions)
-# ====================================================
 with tab_lenses:
     ensure_sessions()
     st.subheader("Lenses")
@@ -812,7 +847,6 @@ with tab_lenses:
         "data-maturity-assessment-for-government-framework-html)"
     )
 
-    # Maturity sliders
     cols_theme = st.columns(3)
     for i, (name, desc) in enumerate(MATURITY_THEMES):
         with cols_theme[i % 3]:
@@ -829,14 +863,14 @@ with tab_lenses:
             level_name = MATURITY_SCALE[st.session_state["_maturity_scores"][name]]
             st.caption(f"Level: {level_name}")
 
-    # Overall maturity summary + LEVEL bar chart + radar
+    # Overall maturity summary + gauge bar + radar
     m_scores = st.session_state["_maturity_scores"]
     m_avg = sum(m_scores.values()) / len(m_scores) if m_scores else 0
     current_level_name = maturity_label(m_avg)
 
     colA, colB = st.columns([1, 1])
 
-    # ----- LEFT: Bar chart of levels (Mastering at top, Beginning at bottom) -----
+    # LEFT: Gauge-style bar (0–5)
     with colA:
         st.metric("Overall maturity (average)", f"{m_avg:.1f} / 5")
         st.markdown(
@@ -844,55 +878,34 @@ with tab_lenses:
             unsafe_allow_html=True,
         )
 
-        level_order = ["Beginning", "Emerging", "Learning", "Developing", "Mastering"]
-        # For vertical axis with Mastering at top, we reverse the plotting order
-        levels_for_plot = list(reversed(level_order))  # [Mastering ... Beginning]
-
-        bar_df = []
-        for lvl in levels_for_plot:
-            bar_df.append(
-                {
-                    "Level": lvl,
-                    "Value": 1,  # all bars same length – we care about highlight, not magnitude
-                    "IsCurrent": (lvl == current_level_name),
-                }
-            )
-        bar_df = pd.DataFrame(bar_df)
+        gauge_df = pd.DataFrame({"Metric": ["Maturity"], "Score": [m_avg]})
 
         fig_bar = px.bar(
-            bar_df,
-            x="Value",
-            y="Level",
-            orientation="h",
-            title="Overall maturity level (government framework)",
+            gauge_df,
+            x="Metric",
+            y="Score",
+            title="Overall maturity (1–5)",
+            range_y=[0, 5],
         )
-        # Colour highlight current level, grey others
-        colors = [
-            PRIMARY if is_cur else "#d0d0d0" for is_cur in bar_df["IsCurrent"]
-        ]
-        fig_bar.update_traces(marker_color=colors)
-        fig_bar.update_layout(
-            showlegend=False,
-            xaxis=dict(visible=False),
-            margin=dict(l=80, r=10, t=40, b=20),
-        )
+        fig_bar.update_traces(marker_color=PRIMARY)
         fig_bar.update_yaxes(
-            categoryorder="array",
-            categoryarray=levels_for_plot,  # Mastering at top, Beginning at bottom
+            tickvals=[1, 2, 3, 4, 5],
+            ticktext=["Beginning", "Emerging", "Learning", "Developing", "Mastering"],
             title=None,
         )
+        fig_bar.update_xaxes(title=None, showticklabels=False)
+        fig_bar.update_layout(margin=dict(l=80, r=10, t=40, b=20))
 
         st.plotly_chart(fig_bar, use_container_width=True)
 
         st.markdown(
-            "_Levels follow the government framework naming: "
-            "**Beginning, Emerging, Learning, Developing, Mastering**._"
+            "_Bar shows your current average position on the government maturity framework._"
         )
 
-    # ----- RIGHT: Radar (themes profile, 1–5 scale) -----
+    # RIGHT: Radar (themes profile, 1–5 scale)
     with colB:
         dims_m = list(m_scores.keys())
-        vals01 = [m_scores[d] / 5 for d in dims_m]  # 1–5 scaled to 0–1
+        vals01 = [m_scores[d] / 5 for d in dims_m]
         figm = go.Figure()
         figm.add_trace(radar_trace(vals01, dims_m, "Maturity", opacity=0.6))
         figm.update_layout(
@@ -909,9 +922,38 @@ with tab_lenses:
         st.plotly_chart(figm, use_container_width=True)
 
         st.markdown(
-            "_Bar chart shows your overall level on the government maturity framework._  \n"
-            "_Radar shows how that level is distributed across the six themes (Uses, Data, Leadership, Culture, Tools, Skills)._"
+            "_Bar shows your overall level. Radar shows how that level is distributed across the six themes "
+            "(Uses, Data, Leadership, Culture, Tools, Skills)._"
         )
+
+    # Mini-report export for maturity
+    maturity_rows = []
+    for name, _ in MATURITY_THEMES:
+        score = st.session_state["_maturity_scores"][name]
+        maturity_rows.append(
+            {
+                "Theme": name,
+                "Score (1–5)": score,
+                "Level": MATURITY_SCALE[score],
+            }
+        )
+    maturity_rows.append(
+        {
+            "Theme": "Overall (average)",
+            "Score (1–5)": round(m_avg, 2),
+            "Level": current_level_name,
+        }
+    )
+    maturity_df = pd.DataFrame(maturity_rows)
+    maturity_csv = maturity_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        "⬇️ Download maturity snapshot (CSV)",
+        data=maturity_csv,
+        file_name="maturity_snapshot.csv",
+        mime="text/csv",
+        help="Download your current maturity assessment for use in slide decks or programme plans.",
+    )
 
     st.markdown("---")
 
@@ -964,7 +1006,6 @@ with tab_lenses:
                     f"{left_lbl} ←── {st.session_state['_target_scores'][dim]}% → {right_lbl}"
                 )
 
-                # Hint based on maturity
                 hint = hint_for_lens(dim, m_avg, current_level_name)
                 if hint:
                     st.markdown(
@@ -972,7 +1013,6 @@ with tab_lenses:
                         unsafe_allow_html=True,
                     )
 
-                # Conflict check
                 warn = conflict_for_target(
                     dim, st.session_state["_target_scores"][dim], m_avg
                 )
@@ -995,8 +1035,6 @@ with tab_lenses:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-
-
 # ====================================================
 # 🧭 JOURNEY
 # ====================================================
@@ -1007,12 +1045,13 @@ with tab_journey:
         "Conflicts highlight ambition that may exceed readiness."
     )
 
+    ensure_sessions()
     dims = [a[0] for a in AXES]
     current = st.session_state.get("_current_scores", {d: 50 for d in dims})
     target = st.session_state.get("_target_scores", {d: 50 for d in dims})
     m_scores = st.session_state.get("_maturity_scores", {k: 3 for k, _ in MATURITY_THEMES})
     m_avg = sum(m_scores.values()) / len(m_scores) if m_scores else 0
-    m_stage = maturity_label(m_avg)
+    level_name = maturity_label(m_avg)
 
     rows = []
     for d, left_lbl, right_lbl in AXES:
@@ -1040,10 +1079,15 @@ with tab_journey:
         ["Conflict", "Magnitude"], ascending=[False, False]
     )
 
+    # Narrative summary
+    moves_left = sum(1 for v in gap_df["Change needed"] if v < 0)
+    moves_right = sum(1 for v in gap_df["Change needed"] if v > 0)
+    zero_moves = sum(1 for v in gap_df["Change needed"] if v == 0)
+
     st.markdown(
-        f"**Maturity:** <span class='kv'>{m_avg:.1f} / 5</span> "
-        f"<span class='badge'>Stage: {m_stage}</span>",
-        unsafe_allow_html=True,
+        f"**Summary:** At overall maturity level **{level_name}** (avg {m_avg:.1f}/5), "
+        f"you are planning to move **{moves_left} lens(es) toward the left**, "
+        f"**{moves_right} toward the right**, and leaving **{zero_moves} unchanged.**"
     )
 
     st.markdown("#### Gap by lens (conflicts first)")
@@ -1061,7 +1105,6 @@ with tab_journey:
         orientation="h",
         title="Signed change needed (− move left • + move right)",
     )
-    # override bar colors (single trace)
     bar.data[0].marker.color = color_series
     st.plotly_chart(bar, use_container_width=True)
 
@@ -1088,21 +1131,19 @@ with tab_journey:
             bullets.append(line)
         st.markdown("\n".join(bullets), unsafe_allow_html=True)
 
-             # Seed actions table for Actions tab
+        # Seed actions table for Actions tab
         actions_rows = []
         for i, (_, row) in enumerate(top.iterrows(), start=1):
             d = row["Lens"]
             diff = row["Change needed"]
             left_lbl = [a[1] for a in AXES if a[0] == d][0]
             right_lbl = [a[2] for a in AXES if a[0] == d][0]
-
             if diff > 0:
                 direction = f"toward {right_lbl}"
             elif diff < 0:
                 direction = f"toward {left_lbl}"
             else:
                 direction = "no change"
-
             actions_rows.append(
                 {
                     "Priority": i,
@@ -1114,9 +1155,7 @@ with tab_journey:
                     "Status": "",
                 }
             )
-
         st.session_state["_actions_df"] = pd.DataFrame(actions_rows)
-
     else:
         st.info(
             "Current and target are identical — no change required. "
@@ -1128,10 +1167,10 @@ with tab_journey:
     )
 
 # ====================================================
-# ✅ ACTIONS 
+# ✅ ACTIONS & EXPORT
 # ====================================================
 with tab_actions:
-    st.subheader("Actions")
+    st.subheader("Actions & Export")
     st.caption(
         "Turn your top priority shifts into an action log. "
         "Assign owners, timelines and metrics, then export to CSV."
@@ -1328,151 +1367,19 @@ A simple stack that distinguishes three levels of architectural thinking:
 """
         )
 
+    st.markdown("### 🧭 How it all fits together")
     st.markdown(
         """
----
-These references are optional. Start with the Explorer itself; reach for a framework only when
-it helps a specific decision, conversation, or engagement with senior leaders.
-"""
-    )
+```text
+Real strategies  →  Explore tab      →  Patterns & comparators
+                  (landscape)
 
-# ====================================================
-# ℹ️ ABOUT
-# ====================================================
-with tab_about:
-    st.subheader("About this Explorer")
+Maturity         →  Lenses (step 1)  →  Where are we now? (Uses, Data, Leadership, Culture, Tools, Skills)
 
-    st.markdown(
-        """
-<div class="info-panel">
-<strong>What this is:</strong> A design-system–inspired prototype that helps public bodies
-<strong>design, communicate, and iterate</strong> their data strategy.
-It adds a <strong>maturity baseline</strong> (six themes) so strategic choices are <em>anchored in readiness</em>,
-then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+Ten Lenses       →  Lenses (step 2)  →  Where do we want to sit on key tensions?
 
-    st.markdown("### Purpose")
-    st.markdown(
-        """
-- Make **key tensions** explicit instead of implicit.  
-- Compare **current vs target** profiles and turn gaps into **prioritised actions**.  
-- Anchor ambition to **realistic maturity** to avoid overreach or under-delivery.
-"""
-    )
+Gaps & conflicts →  Journey          →  Which shifts matter most? What conflicts with our maturity?
 
-    st.markdown("### Who it's for")
-    st.markdown(
-        """
-- **CDOs / Heads of Data** — set direction and align leadership  
-- **Policy & Operations leaders** — frame trade-offs and agree priorities  
-- **Analysts & Data teams** — translate strategy into delivery  
-- **PMOs / Transformation** — track progress and course-correct
-"""
-    )
+Actions          →  Actions & Export →  Who will do what, by when, and how will we track it?
 
-    st.markdown("### How to use")
-    st.markdown(
-        """
-1) **Explore** the landscape of strategies (by year, country, org type) for context.  
-2) **Self-diagnose maturity** across six themes (1–5) to set a readiness baseline.  
-3) **Set tensions** — define **Current** vs **Target** across the Ten Lenses.  
-4) **Journey** — review directional gaps, conflict flags, and top priorities.  
-5) **Actions & Export** — turn shifts into an action log with owners, timelines and measures.
-"""
-    )
-
-    st.markdown("### Maturity (6 themes) — self-diagnosis")
-    st.markdown(
-        """
-| Theme | What it covers | Levels (1→5) |
-|---|---|---|
-| **Data Management** | Standards, quality, metadata, stewardship | Early → Emerging → Established → Advanced → Optimised |
-| **Data Skills** | Literacy and capability across roles | Early → Emerging → Established → Advanced → Optimised |
-| **Tools & Technology** | Platforms, pipelines, interoperability | Early → Emerging → Established → Advanced → Optimised |
-| **Data Governance** | Ownership, accountability, ethics | Early → Emerging → Established → Advanced → Optimised |
-| **Culture & Leadership** | Behaviours, incentives, openness | Early → Emerging → Established → Advanced → Optimised |
-| **Use & Value** | Applying data to services/policy outcomes | Early → Emerging → Established → Advanced → Optimised |
-"""
-    )
-    st.markdown(
-        "**Maturity stages:** 1–2 = *Foundational*, 2–3 = *Developing*, 3–4 = *Established*, 4–5 = *Leading*."
-    )
-
-    st.markdown("### The Ten Lenses of Data Strategy (tensions)")
-    st.markdown(
-        """
-| # | Lens | Lef ↔ Right | Description | Example |
-|---|------|-------------|----------------------|--------------------|
-| **1** | **Abstraction Level** | Conceptual ↔ Logical/Physical | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Strategy” is logical/physical. |
-| **2** | **Adaptability** | Living ↔ Fixed | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK's AI white paper is living; GDPR is fixed. |
-| **3** | **Ambition** | Essential ↔ Transformational | **Essential** ensures foundations; **Transformational** drives innovation and automation. | DVLA data sharing are essential; Estonia’s X-Road is transformational. |
-| **4** | **Coverage** | Horizontal ↔ Use-case-based | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | Government data maturity based maturity improvements vs a use case specific pilot. |
-| **5** | **Governance Structure** | Ecosystem/Federated ↔ Centralised | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | Federated, domain and strength based vs a centralised decision making approach. |
-| **6** | **Orientation** | Technology-focused ↔ Value-focused |**Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
-| **7** | **Motivation** | Compliance driven ↔ Innovation-driven |**Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | Privacy by design vs data sharing trusts sandboxes. |
-| **8** | **Access Philosophy** | Data-democratised ↔ Controlled access |**Democratised** broadens data access; **Controlled** enforces permissions. | Open environmental data portals vs restricted health datasets. |
-| **9** | **Delivery Mode** | Incremental ↔ Big Bang |**Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
-| **10** | **Decision Model** |Data-informed ↔ Data-driven  |**Data-informed** blends human judgment; **Data-driven** relies on analytics/automation. | Evidence-based policymaking vs automated fraud detection. |
-""")
-
-
-    st.markdown(
-        """
-**How it works together:**  
-*Maturity foundation* → *Strategic tensions* → *Journey plan*.  
-Readiness first, direction second — then prioritise and deliver.
-"""
-    )
-
-    st.markdown("---")
-    st.markdown("### FAQs")
-    st.markdown(
-        """
-**Is one side of a lens better?**  
-No — positions reflect context and risk appetite. The goal is **conscious balance**.  
-
-**What if Current and Target are far apart?**  
-That’s good signal: pick **three shifts** to start; avoid Big-Bang unless mandated.  
-
-**What if a target conflicts with maturity?**  
-The tool flags this. Consider phased approaches or invest in foundations first.
-"""
-    )
-
-    st.markdown("---")
-    st.markdown("### 📘 User Guide (PDF)")
-
-    pdf_name = "Data_Strategy_Explorer_User_Guide.pdf"
-    if os.path.exists(pdf_name):
-        with open(pdf_name, "rb") as f:
-            pdf_bytes = f.read()
-        b64 = base64.b64encode(pdf_bytes).decode()
-        href = (
-            f'<a href="data:application/pdf;base64,{b64}" '
-            f'download="{pdf_name}">⬇️ Click here to download the User Guide (PDF)</a>'
-        )
-        st.markdown(href, unsafe_allow_html=True)
-
-        # Optional inline preview
-        st.markdown("#### Preview")
-        st.markdown(
-            f'<iframe src="data:application/pdf;base64,{b64}" width="100%" height="600"></iframe>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.info(
-            f"Place **{pdf_name}** in the same folder as this app to enable download and inline preview."
-        )
-
-    st.markdown(
-        """
----
-<div class="footer">
-This is a design-inspired prototype for learning and exploration. It is not an official service.
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+Frameworks       →  Resources        →  Extra ways of framing choices (Playing to Win, Strategy Diamond, etc.)
