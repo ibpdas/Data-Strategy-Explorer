@@ -103,7 +103,7 @@ a:hover {{ color:#003078; }}
 </style>
 <div class="header-bar">
   <h1>Public Sector Data Strategy Explorer</h1>
-  <div class="sub">Design better data strategies, faster — balance tensions, align leadership, and plan change.</div>
+  <div class="sub">Real data strategy + Fast impact.</div>
 </div>
 """,
     unsafe_allow_html=True,
@@ -1240,88 +1240,78 @@ Use these frameworks to deepen the conversation around your data strategy:
 # ℹ️ ABOUT
 # ====================================================
 with tab_about:
-    st.subheader("About this Explorer")
+    st.subheader("About this explorer")
 
-    st.markdown(
-        """
-### Purpose
-Help public bodies **design, communicate, and iterate** their data strategy by making
-the **key tensions** explicit, comparing **current vs target**, and turning gaps into **prioritised actions**.
+    st.markdown("""
+This explorer helps public bodies plan and manage their data strategy.
 
-The **Public Sector Data Strategy Explorer** helps you understand **how data strategies differ** — in scope, ambition, and governance.  
-It combines a searchable dataset of real strategies with a conceptual framework called **The Ten Lenses of Data Strategy**.
-"""
-    )
+It started as a personal learning and development project to make sense of different public sector data strategies, and has grown into a practical tool you can use in workshops and planning sessions.
 
-    st.markdown(
-        """
-### Who it's for
-**CDOs / Heads of Data** — 
-— set direction and align leadership  
-— frame trade-offs and agree priorities  
-— translate strategy into delivery  
-— track progress and course correct
-"""
-    )
+It makes key choices visible, compares where you are now with where you want to be, and turns gaps into a small set of actions you can track.
+""")
 
-    st.markdown(
-        """
-### How to use this tool
-1. **Explore** the landscape of strategies (by year, country, org type) for context.  
-2. **Assess maturity** using the six government themes to agree where you are today.  
-3. **Set profiles** using the Ten Lenses sliders to define **Current** and **Target** positions.  
-4. **Compare** in the Journey tab to see directional gaps (left/right) and magnitudes.  
-5. **Prioritise** the top shifts and convert them into actions (owners, timelines, measures).  
-6. **Re-assess regularly** — treat your strategy as a **living** thing.
-"""
-    )
+    st.markdown("""
+### Who this tool is for
 
-    st.markdown("### Ten Lenses — explanation and examples")
-    st.markdown(
-        """
-| # | Lens | Description | Example |
-|---|------|-------------|---------|
-| **1** | **Abstraction Level** | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Strategy” is logical/physical. |
-| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK's AI white paper is living; GDPR is fixed. |
-| **3** | **Ambition** | **Essential** ensures foundations; **Transformational** drives innovation and automation. | Strengthening data quality and governance is essential; Estonia’s X-Road is transformational. |
-| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | Cross-government maturity improvements vs a single use-case pilot. |
-| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | Federated, domain-based ownership vs a fully centralised decision-making model. |
-| **6** | **Orientation** | **Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
-| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | Privacy-by-design vs data-sharing sandboxes and trusts. |
-| **8** | **Access Philosophy** | **Democratised** broadens data access; **Controlled** enforces permissions. | Open environmental data portals vs restricted health datasets. |
-| **9** | **Delivery Mode** | **Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
-| **10** | **Decision Model** | **Data-informed** blends human judgment; **Data-driven** relies on analytics/automation. | Evidence-based policymaking vs automated fraud detection. |
-"""
-    )
+- Chief data officers and heads of data  
+- Policy and operations leaders  
+- Analysts and data teams  
+- Programme and transformation offices
+""")
 
-    st.markdown("---")
+    st.markdown("""
+### What this tool does
 
-    st.markdown(
-        """
-### FAQs
+You can use the explorer to:
 
-**Is one side of a lens better?**  
-No — positions reflect context and risk appetite. The goal is **conscious balance**.
+- see how other organisations describe their data strategies  
+- assess your data maturity against six government data themes  
+- position your strategy on ten lenses (for example, ambition, governance, delivery mode)  
+- compare current and target positions and see where the biggest gaps are  
+- create a short action log with owners, timelines and measures
+""")
 
-**What if Current and Target are far apart?**  
-That’s good information: pick **three shifts** to start; avoid Big-Bang unless mandated.
+    st.markdown("""
+### The Ten Lenses of Data Strategy
 
-**How do we decide left vs right?**  
-Use the **Lenses** tab — each lens includes hints based on your maturity and a concrete example.
-"""
-    )
+The ten lenses describe the main choices organisations make in their data strategy.
 
-    st.markdown(
-        "> **“Every data strategy is a balancing act — between governance and growth, "
-        "structure and experimentation, control and creativity.”**"
-    )
+| Lens | What it describes |
+|------|-------------------|
+| Abstraction level | Whether the strategy focuses on vision and principles, or detailed architecture and governance. |
+| Adaptability | Whether the strategy is reviewed regularly, or kept largely fixed. |
+| Ambition | Whether the focus is on foundations, or more transformational change. |
+| Coverage | Whether the strategy is horisontal across the organisation, or focused on specific use cases. |
+| Governance structure | Whether governance is federated across domains, or centralised. |
+| Orientation | Whether the emphasis is on platforms and tools, or on outcomes and value. |
+| Motivation | Whether work is mainly driven by compliance, or by innovation and opportunity. |
+| Access philosophy | Whether data access is broadly shared, or tightly controlled. |
+| Delivery mode | Whether change is delivered incrementally, or through larger programmes. |
+| Decision model | Whether decisions are mainly data-informed with human judgement, or more automated and data-driven. |
+""")
+
+    st.markdown("""
+### How to use it in practice
+
+You can:
+
+- use the maturity assessment and lenses in workshops with senior leaders  
+- export the action log into programme plans, risk logs or OKRs  
+- revisit your scores after major changes, such as a new strategy, platform or operating model
+""")
+
+    st.markdown("""
+### Further information
+
+This prototype is for learning and exploration. It is not an official government service or guidance.
+""")
 
 # ---------------- Footer ----------------
 st.markdown(
     """
 ---
 <div class="footer">
-This prototype is created for learning and exploration. It is not an official service.
+This prototype is created for learning and exploration by Bandhu P. Das. It is not an official service.
 </div>
 """,
     unsafe_allow_html=True,
