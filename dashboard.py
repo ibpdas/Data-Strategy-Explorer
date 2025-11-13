@@ -1199,3 +1199,129 @@ with tab_actions:
             "> Tip: paste this table into your programme plan or OKRs to track progress."
         )
 
+# ====================================================
+# 📚 RESOURCES
+# ====================================================
+with tab_resources:
+    st.subheader("Resources — strategy & data frameworks")
+
+    st.markdown(
+        """
+Use these frameworks to deepen the conversation around your data strategy:
+
+- **Playing to Win (Lafley & Martin)**  
+  *Where will you play? How will you win?* Use this to sharpen the **strategic choices** that your data work supports.
+
+- **Strategy Kernel (Diagnosis → Guiding Policy → Coherent Actions)**  
+  Map your **maturity diagnosis** and **lens choices** into a guiding policy and 5–10 coherent actions.
+
+- **Three Horizons Framework**  
+  Align actions over time:  
+  - Horizon 1: Fix foundations and quick wins  
+  - Horizon 2: Build new capabilities  
+  - Horizon 3: Transform services and models
+
+- **Data Management Body of Knowledge (DAMA-DMBOK)**  
+  Cross-check that your strategy covers key disciplines: data quality, governance, architecture, security, metadata, etc.
+
+- **Government Data Maturity Assessment (CDDO)**  
+  The six themes you’ve used in this tool. Use the official framework for a deeper organisation-wide conversation.
+
+- **Outcome & Value Frameworks (e.g. logic models, theory of change)**  
+  Link data initiatives to **policy outcomes**, not just technology deliverables.
+"""
+    )
+
+    st.markdown(
+        "_You can paste maturity snapshots, lens profiles and action logs from this explorer into your slide decks or business cases._"
+    )
+
+# ====================================================
+# ℹ️ ABOUT
+# ====================================================
+with tab_about:
+    st.subheader("About this Explorer")
+
+    st.markdown(
+        """
+### 🎯 Purpose
+Help public bodies **design, communicate, and iterate** their data strategy by making
+the **key tensions** explicit, comparing **current vs target**, and turning gaps into **prioritised actions**.
+
+The **Public Sector Data Strategy Explorer** helps you understand **how data strategies differ** — in scope, ambition, and governance.  
+It combines a searchable dataset of real strategies with a conceptual framework called **The Ten Lenses of Data Strategy**.
+"""
+    )
+
+    st.markdown(
+        """
+### 👥 Who it's for
+- **CDOs / Heads of Data** — set direction and align leadership  
+- **Policy & Operations leaders** — frame trade-offs and agree priorities  
+- **Analysts & Data teams** — translate strategy into delivery  
+- **PMOs / Transformation** — track progress and course-correct
+"""
+    )
+
+    st.markdown(
+        """
+### 🛠️ How to use this tool
+1. **Explore** the landscape of strategies (by year, country, org type) for context.  
+2. **Assess maturity** using the six government themes to agree where you are today.  
+3. **Set profiles** using the Ten Lenses sliders to define **Current** and **Target** positions.  
+4. **Compare** in the Journey tab to see directional gaps (left/right) and magnitudes.  
+5. **Prioritise** the top shifts and convert them into actions (owners, timelines, measures).  
+6. **Re-assess regularly** — treat your strategy as a **living** thing.
+"""
+    )
+
+    st.markdown("### 🔍 Ten Lenses — explanation and examples")
+    st.markdown(
+        """
+| # | Lens | Description | Example |
+|---|------|-------------|---------|
+| **1** | **Abstraction Level** | **Conceptual** strategies define vision and principles; **Logical / Physical** specify architecture and governance. | A national “Data Vision 2030” is conceptual; a departmental “Data Architecture Strategy” is logical/physical. |
+| **2** | **Adaptability** | **Living** evolves with new tech and policy; **Fixed** provides a stable framework. | The UK's AI white paper is living; GDPR is fixed. |
+| **3** | **Ambition** | **Essential** ensures foundations; **Transformational** drives innovation and automation. | Strengthening data quality and governance is essential; Estonia’s X-Road is transformational. |
+| **4** | **Coverage** | **Horizontal** builds maturity across all functions; **Use-case-based** targets exemplar projects. | Cross-government maturity improvements vs a single use-case pilot. |
+| **5** | **Governance Structure** | **Ecosystem / Federated** encourages collaboration; **Centralised** ensures uniform control. | Federated, domain-based ownership vs a fully centralised decision-making model. |
+| **6** | **Orientation** | **Technology-focused** emphasises platforms; **Value-focused** prioritises outcomes and citizens. | A cloud migration roadmap vs a policy-impact dashboard. |
+| **7** | **Motivation** | **Compliance-driven** manages risk; **Innovation-driven** creates opportunity. | Privacy-by-design vs data-sharing sandboxes and trusts. |
+| **8** | **Access Philosophy** | **Democratised** broadens data access; **Controlled** enforces permissions. | Open environmental data portals vs restricted health datasets. |
+| **9** | **Delivery Mode** | **Incremental** iterates and tests; **Big Bang** transforms at once. | Local pilots vs national-scale reform. |
+| **10** | **Decision Model** | **Data-informed** blends human judgment; **Data-driven** relies on analytics/automation. | Evidence-based policymaking vs automated fraud detection. |
+"""
+    )
+
+    st.markdown("---")
+
+    st.markdown(
+        """
+### ❓ FAQs
+
+**Is one side of a lens better?**  
+No — positions reflect context and risk appetite. The goal is **conscious balance**.
+
+**What if Current and Target are far apart?**  
+That’s good information: pick **three shifts** to start; avoid Big-Bang unless mandated.
+
+**How do we decide left vs right?**  
+Use the **Lenses** tab — each lens includes hints based on your maturity and a concrete example.
+"""
+    )
+
+    st.markdown(
+        "> **“Every data strategy is a balancing act — between governance and growth, "
+        "structure and experimentation, control and creativity.”**"
+    )
+
+# ---------------- Footer ----------------
+st.markdown(
+    """
+---
+<div class="footer">
+This prototype is created for learning and exploration. It is not an official service.
+</div>
+""",
+    unsafe_allow_html=True,
+)
