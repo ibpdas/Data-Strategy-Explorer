@@ -1256,11 +1256,11 @@ It combines a searchable dataset of real strategies with a conceptual framework 
     st.markdown(
         """
 ### Who it's for
-- **CDOs / Heads of Data** — 
+**CDOs / Heads of Data** — 
 — set direction and align leadership  
 — frame trade-offs and agree priorities  
 — translate strategy into delivery  
-— track progress and course-correct
+— track progress and course correct
 """
     )
 
