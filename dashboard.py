@@ -808,7 +808,6 @@ st.markdown(
     "(https://www.gov.uk/government/publications/data-maturity-assessment-for-government-framework/"
     "data-maturity-assessment-for-government-framework-html)"
 )
-
     cols_theme = st.columns(3)
     for i, (name, desc) in enumerate(MATURITY_THEMES):
         with cols_theme[i % 3]:
