@@ -607,6 +607,12 @@ tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_
     ["Home", "Explore", "Lenses", "Journey", "Actions & Export", "Resources", "About"]
 )
 
+# ...other tab content...
+
+with tab_about:
+    render_about_tab()
+
+
 # ====================================================
 # 🏠 HOME
 # ====================================================
