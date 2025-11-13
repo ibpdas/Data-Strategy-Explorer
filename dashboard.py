@@ -1156,7 +1156,7 @@ with tab_journey:
         )
 
     st.markdown(
-        "_Remember strategy is a balancing act_"
+        "_You can paste maturity snapshots, lens profiles and action logs from this explorer into your slide decks or business cases._"
     )
 
 # ====================================================
@@ -1233,7 +1233,7 @@ Use these frameworks to deepen the conversation around your data strategy:
     )
 
     st.markdown(
-        "_You can paste maturity snapshots, lens profiles and action logs from this explorer into your slide decks or business cases._"
+        "_Public sector resources to be added_"
     )
 
 # ====================================================
@@ -1256,7 +1256,8 @@ It combines a searchable dataset of real strategies with a conceptual framework 
     st.markdown(
         """
 ### 👥 Who it's for
-- **CDOs / Heads of Data** — set direction and align leadership  
+- **CDOs / Heads of Data** — 
+- set direction and align leadership  
 - **Policy & Operations leaders** — frame trade-offs and agree priorities  
 - **Analysts & Data teams** — translate strategy into delivery  
 - **PMOs / Transformation** — track progress and course-correct
