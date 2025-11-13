@@ -1248,7 +1248,7 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 🎯 Purpose")
+    st.markdown("### Purpose")
     st.markdown(
         """
 - Make **key tensions** explicit instead of implicit.  
@@ -1257,7 +1257,7 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
 """
     )
 
-    st.markdown("### 👥 Who it's for")
+    st.markdown("### Who it's for")
     st.markdown(
         """
 - **CDOs / Heads of Data** — set direction and align leadership  
@@ -1267,7 +1267,7 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
 """
     )
 
-    st.markdown("### 🛠️ How to use")
+    st.markdown("### How to use")
     st.markdown(
         """
 1) **Explore** the landscape of strategies (by year, country, org type) for context.  
@@ -1278,7 +1278,7 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
 """
     )
 
-    st.markdown("### 🧱 Maturity (6 themes) — self-diagnosis")
+    st.markdown("### Maturity (6 themes) — self-diagnosis")
     st.markdown(
         """
 | Theme | What it covers | Levels (1→5) |
@@ -1295,7 +1295,7 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
         "**Maturity stages:** 1–2 = *Foundational*, 2–3 = *Developing*, 3–4 = *Established*, 4–5 = *Leading*."
     )
 
-    st.markdown("### 🔍 The Ten Lenses of Data Strategy (tensions)")
+    st.markdown("### The Ten Lenses of Data Strategy (tensions)")
     st.markdown(
         """
 | # | Lens | Left ↔ Right |
@@ -1316,13 +1316,13 @@ then uses the <strong>Ten Lenses</strong> to make trade-offs explicit.
     st.markdown(
         """
 **How it works together:**  
-🧱 *Maturity foundation* → 🎯 *Strategic tensions* → 🧭 *Journey plan*.  
+*Maturity foundation* → *Strategic tensions* → *Journey plan*.  
 Readiness first, direction second — then prioritise and deliver.
 """
     )
 
     st.markdown("---")
-    st.markdown("### ❓ FAQs")
+    st.markdown("### FAQs")
     st.markdown(
         """
 **Is one side of a lens better?**  
