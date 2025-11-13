@@ -609,9 +609,6 @@ tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_
 
 # ...other tab content...
 
-with tab_about:
-    render_about_tab()
-
 
 # ====================================================
 # 🏠 HOME
@@ -2422,10 +2419,16 @@ with tab_actions:
 # ℹ️ ABOUT — your provided content
 # ====================================================
 
-def render_about_tab():
-    st.subheader("About this Explorer")
+with tab_about:
 
-    # --- Purpose & Audience
+    import streamlit as st
+    import plotly.graph_objects as go
+    import pandas as pd
+
+    def render_about_tab_full(container, AXES):
+        with container:
+            st.subheader("About this Explorer")
+
     st.markdown("""
 ### 🎯 Purpose
 Help public bodies **design, communicate, and iterate** their data strategy by making
