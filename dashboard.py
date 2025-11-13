@@ -1244,7 +1244,7 @@ with tab_about:
 
     st.markdown(
         """
-### 🎯 Purpose
+### Purpose
 Help public bodies **design, communicate, and iterate** their data strategy by making
 the **key tensions** explicit, comparing **current vs target**, and turning gaps into **prioritised actions**.
 
@@ -1255,18 +1255,18 @@ It combines a searchable dataset of real strategies with a conceptual framework 
 
     st.markdown(
         """
-### 👥 Who it's for
+### Who it's for
 - **CDOs / Heads of Data** — 
-- set direction and align leadership  
-- **Policy & Operations leaders** — frame trade-offs and agree priorities  
-- **Analysts & Data teams** — translate strategy into delivery  
-- **PMOs / Transformation** — track progress and course-correct
+— set direction and align leadership  
+— frame trade-offs and agree priorities  
+— translate strategy into delivery  
+— track progress and course-correct
 """
     )
 
     st.markdown(
         """
-### 🛠️ How to use this tool
+### How to use this tool
 1. **Explore** the landscape of strategies (by year, country, org type) for context.  
 2. **Assess maturity** using the six government themes to agree where you are today.  
 3. **Set profiles** using the Ten Lenses sliders to define **Current** and **Target** positions.  
