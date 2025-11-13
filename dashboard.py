@@ -790,6 +790,9 @@ with tab_explore:
 # 👁️ LENSES (Maturity → Tensions)
 # ====================================================
 
+# ====================================================
+# 👁️ LENSES (Maturity → Tensions)
+# ====================================================
 with tab_lenses:
     ensure_sessions()
     st.subheader("Lenses")
@@ -817,7 +820,6 @@ with tab_lenses:
     cols_theme = st.columns(3)
     for i, (name, desc) in enumerate(MATURITY_THEMES):
         with cols_theme[i % 3]:
-            # default to 3 if not yet set
             current_val = st.session_state["_maturity_scores"].get(name, 3)
             st.session_state["_maturity_scores"][name] = st.slider(
                 name,
@@ -828,75 +830,70 @@ with tab_lenses:
                 format="%d",
                 key=f"mat_{name}",
             )
-            st.caption(
-                f"Level: {MATURITY_SCALE[st.session_state['_maturity_scores'][name]]}"
-            )
+            level_name = MATURITY_SCALE[st.session_state["_maturity_scores"][name]]
+            st.caption(f"Level: {level_name}")
 
-    # Overall maturity summary + pyramid + radar
+    # Overall maturity summary + LEVEL bar chart + radar
     m_scores = st.session_state["_maturity_scores"]
     m_avg = sum(m_scores.values()) / len(m_scores) if m_scores else 0
-    m_stage = maturity_label(m_avg)
-
-    # Map average (1–5) to nearest level index
-    level_order = ["Beginning", "Emerging", "Learning", "Developing", "Mastering"]
-    # ensure MATURITY_SCALE uses these names
-    # {1:"Beginning", 2:"Emerging", 3:"Learning", 4:"Developing", 5:"Mastering"}
-    avg_level_idx = int(round(m_avg))
-    avg_level_idx = max(1, min(5, avg_level_idx))
-    current_level_name = MATURITY_SCALE[avg_level_idx]
+    current_level_name = maturity_label(m_avg)
 
     colA, colB = st.columns([1, 1])
 
-    # ----- LEFT: Pyramid (overall level) -----
+    # ----- LEFT: Bar chart of levels (Mastering at top, Beginning at bottom) -----
     with colA:
         st.metric("Overall maturity (average)", f"{m_avg:.1f} / 5")
         st.markdown(
-            f"<span class='badge'>Stage: {m_stage}</span>",
+            f"<span class='badge'>Level: {current_level_name}</span>",
             unsafe_allow_html=True,
         )
 
-        # Build a simple horizontal "pyramid" using a bar chart
-        levels_for_plot = list(reversed(level_order))  # show Beginning at bottom
-        widths = [i for i in range(1, 6)]              # 1..5 to get the stepped look
+        level_order = ["Beginning", "Emerging", "Learning", "Developing", "Mastering"]
+        # For vertical axis with Mastering at top, we reverse the plotting order
+        levels_for_plot = list(reversed(level_order))  # [Mastering ... Beginning]
 
-        colors = []
-        for name, width in zip(levels_for_plot, widths[::-1]):  # invert width list
-            # name will be e.g. 'Mastering', 'Developing', ...
-            if name == current_level_name:
-                colors.append(PRIMARY)   # highlight current
-            else:
-                colors.append("#d0d0d0")  # grey for others
+        bar_df = []
+        for lvl in levels_for_plot:
+            bar_df.append(
+                {
+                    "Level": lvl,
+                    "Value": 1,  # all bars same length – we care about highlight, not magnitude
+                    "IsCurrent": (lvl == current_level_name),
+                }
+            )
+        bar_df = pd.DataFrame(bar_df)
 
-        pyramid_df = pd.DataFrame(
-            {
-                "Level": levels_for_plot,
-                "Width": widths,
-                "Color": colors,
-            }
-        )
-
-        fig_pyr = px.bar(
-            pyramid_df,
-            x="Width",
+        fig_bar = px.bar(
+            bar_df,
+            x="Value",
             y="Level",
             orientation="h",
-            title="Overall maturity level (pyramid view)",
+            title="Overall maturity level (government framework)",
         )
-        fig_pyr.update_traces(marker_color=pyramid_df["Color"])
-        fig_pyr.update_yaxes(categoryorder="array", categoryarray=levels_for_plot)
-        fig_pyr.update_layout(
+        # Colour highlight current level, grey others
+        colors = [
+            PRIMARY if is_cur else "#d0d0d0" for is_cur in bar_df["IsCurrent"]
+        ]
+        fig_bar.update_traces(marker_color=colors)
+        fig_bar.update_layout(
             showlegend=False,
             xaxis=dict(visible=False),
-            margin=dict(l=60, r=10, t=40, b=20),
+            margin=dict(l=80, r=10, t=40, b=20),
         )
-        st.plotly_chart(fig_pyr, use_container_width=True)
+        fig_bar.update_yaxes(
+            categoryorder="array",
+            categoryarray=levels_for_plot,  # Mastering at top, Beginning at bottom
+            title=None,
+        )
+
+        st.plotly_chart(fig_bar, use_container_width=True)
 
         st.markdown(
             "_Levels follow the government framework naming: "
             "**Beginning, Emerging, Learning, Developing, Mastering**._"
         )
 
-    # ----- RIGHT: Radar (themes profile) -----
+    # ----- RIGHT: Radar (themes profile, 1–5 scale) -----
     with colB:
         dims_m = list(m_scores.keys())
         vals01 = [m_scores[d] / 5 for d in dims_m]  # 1–5 scaled to 0–1
@@ -915,6 +912,12 @@ with tab_lenses:
         )
         st.plotly_chart(figm, use_container_width=True)
 
+        st.markdown(
+            "_Bar chart shows your overall level on the government maturity framework._  \n"
+            "_Radar shows how that level is distributed across the six themes (Uses, Data, Leadership, Culture, Tools, Skills)._"
+        )
+
+    st.markdown("---")
 
     # ------- Section 2: Tensions -------
     st.markdown("### 2) Determine strategic tensions (current vs target)")
@@ -923,9 +926,9 @@ with tab_lenses:
         "Hints and warnings adapt to your maturity profile."
     )
 
-    # Current profile
     colL, colR = st.columns(2)
 
+    # Current profile
     with colL:
         st.markdown("#### Current")
         cols = st.columns(2)
@@ -965,15 +968,15 @@ with tab_lenses:
                     f"{left_lbl} ←── {st.session_state['_target_scores'][dim]}% → {right_lbl}"
                 )
 
-                # Contextual hint based on maturity
-                hint = hint_for_lens(dim, m_avg, m_stage)
+                # Hint based on maturity
+                hint = hint_for_lens(dim, m_avg, current_level_name)
                 if hint:
                     st.markdown(
                         f"<div class='info-panel'><strong>Hint:</strong> {hint}</div>",
                         unsafe_allow_html=True,
                     )
 
-                # Conflict warning if target + maturity look misaligned
+                # Conflict check
                 warn = conflict_for_target(
                     dim, st.session_state["_target_scores"][dim], m_avg
                 )
@@ -995,6 +998,7 @@ with tab_lenses:
         title="Current vs Target — strategic fingerprints",
     )
     st.plotly_chart(fig, use_container_width=True)
+
 
 
 # ====================================================
