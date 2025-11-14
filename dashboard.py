@@ -840,7 +840,7 @@ with tab_explore:
         scope_sel = st.multiselect("Scope", scopes, default=scopes)
 
         q = st.text_input(
-            "Search or describe strategies",
+            "**Experimental Feature** - Search strategies",
             placeholder="e.g. 'federated data strategy for small countries' or 'AI ethics framework'",
         )
 
@@ -848,7 +848,7 @@ with tab_explore:
             "Search mode",
             options=["Keyword", "AI semantic"],
             index=1 if emb_df is not None else 0,
-            help="Keyword search looks for exact text matches. AI semantic search finds similar strategies by meaning.",
+            help="Keyword search looks for exact text matches. AI semantic search finds similar strategies by meaning. May produce inaccurate results",
         )
         if emb_df is None and search_mode == "AI semantic":
             st.caption("Install 'sentence-transformers' to enable AI semantic search.")
