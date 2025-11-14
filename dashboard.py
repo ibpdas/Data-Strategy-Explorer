@@ -573,26 +573,30 @@ tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_
 # 🏠 HOME
 # ====================================================
 with tab_home:
+    # Hero / intro
     st.markdown(
         """
 <div class="info-panel">
-<strong>Quick start:</strong> Begin with <strong>Lenses → Maturity</strong> to understand your current readiness,
-then set your strategic tensions and review the Journey.
+  <strong>What this is:</strong> a thinking and workshop tool for public-sector data leaders —
+  to make <strong>maturity</strong>, <strong>strategic tensions</strong>, and <strong>priority shifts</strong> explicit.
+  It will not write your strategy for you, but it will help you have a better conversation about it.
 </div>
 """,
         unsafe_allow_html=True,
     )
 
+    # Three core building blocks
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(
             """
 <div class="card">
-<h3>Explore</h3>
-<p class="desc">
-See patterns in real strategies — by year, country, organisation type and scope.
-Maps, timelines and composition views give fast context.
-</p>
+  <h3>Explore</h3>
+  <p class="desc">
+    Browse real public-sector data strategies by <strong>year</strong>, <strong>country</strong>,
+    <strong>organisation type</strong> and <strong>scope</strong>. Use this for context and inspiration,
+    not as a complete global catalogue.
+  </p>
 </div>
 """,
             unsafe_allow_html=True,
@@ -601,12 +605,12 @@ Maps, timelines and composition views give fast context.
         st.markdown(
             """
 <div class="card">
-<h3>Lenses</h3>
-<p class="desc">
-<strong>Step 1:</strong> Self-diagnose maturity across six government themes.<br>
-<strong>Step 2:</strong> Set <em>Current vs Target</em> positions across Ten Lenses,
-with hints and conflict flags.
-</p>
+  <h3>Lenses &amp; Journey</h3>
+  <p class="desc">
+    <strong>Step 1:</strong> Self-diagnose maturity using six government data themes.<br>
+    <strong>Step 2:</strong> Set <em>Current vs Target</em> positions across Ten Lenses.<br>
+    <strong>Step 3:</strong> Use the Journey tab to see gaps, tensions and potential conflicts.
+  </p>
 </div>
 """,
             unsafe_allow_html=True,
@@ -615,33 +619,110 @@ with hints and conflict flags.
         st.markdown(
             """
 <div class="card">
-<h3>Journey & Actions</h3>
-<p class="desc">
-Gap analysis, conflicts and priorities — then turn shifts into an
-action log with owners, timelines and metrics.
-</p>
+  <h3>Actions &amp; Resources</h3>
+  <p class="desc">
+    Turn your top shifts into a simple <strong>action log</strong>, and use the
+    <strong>Resources</strong> tab to connect your insights to wider strategy and
+    skills frameworks (government and international).
+  </p>
 </div>
 """,
             unsafe_allow_html=True,
         )
 
     st.markdown("---")
+
+    # Quick dataset snapshot
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Rows loaded", len(df))
     k2.metric("Countries", df["country"].nunique() if "country" in df.columns else 0)
     k3.metric("Org types", df["org_type"].nunique() if "org_type" in df.columns else 0)
-    k4.metric("Status-ALHPA-Last updated", time.strftime("%Y-%m-%d", time.localtime()))
+    k4.metric("Last updated", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 
     st.markdown("---")
-    st.markdown("### How to use this explorer")
+
+    # When it is / isn’t useful
+    st.markdown("### When this explorer is useful")
     st.markdown(
         """
-1. **Explore** — get a feel for what other organisations are doing (by year, country, org type, scope).  
-2. **Assess maturity** — use the six government themes (Uses, Data, Leadership, Culture, Tools, Skills) to agree where you are today.  
-3. **Set tensions** — define Current vs Target on the Ten Lenses and see where the biggest shifts are.  
-4. **Review the journey** — focus on the 3–5 most important shifts and check for conflicts with your maturity.  
-5. **Capture actions** — export a small action log and plug it into your programme plan or OKRs.
+Use this tool when you want to:
+
+- **Prepare or refine a data strategy** — sense-check whether your ambitions match your current maturity.
+- **Run a workshop** with leaders or delivery teams (e.g. 60–90 minutes) to surface assumptions and disagreements.
+- **Turn vague direction into clearer shifts** — identify 3–5 practical changes in governance, delivery or access.
+- **Support learning and development** — use the Lenses, maturity themes and Resources tab as prompts for discussion.
 """
+    )
+
+    st.markdown("### When this tool is not designed to be used as")
+    st.markdown(
+        """
+This is <strong>not</strong> intended to be:
+
+- A formal or official assessment of organisational performance.
+- A complete, up-to-date catalogue of all data strategies worldwide.
+- An automatic strategy generator or replacement for professional judgement.
+- A benchmarking tool that compares your scores against other named organisations.
+
+Treat the outputs as structured prompts for conversation and planning, not as a single source of truth.
+"""
+    )
+
+    st.markdown("---")
+
+    # Suggested journey
+    st.markdown("### Suggested journey")
+    st.markdown(
+        """
+1. **Explore** — scan strategies by year, country, org type and scope to build a sense of the landscape.  
+2. **Assess maturity** — agree where you sit today across the six government data maturity themes.  
+3. **Set tensions** — use the Ten Lenses to define your Current vs Target positions, with hints tailored to maturity.  
+4. **Review the journey** — focus on the biggest and riskiest shifts; sense-check for over- or under-reach.  
+5. **Capture actions & learn** — use the Actions tab to create an action log, and the Resources tab to deepen your thinking.
+"""
+    )
+
+    st.markdown("---")
+
+    # Community, openness, data / licensing
+    st.markdown("### Community, openness and data use")
+    st.markdown(
+        """
+- This is a **community project**, created and maintained as a learning and facilitation tool for data strategists.  
+- It does **not collect personal data** about users beyond what your hosting platform may collect by default.  
+- All calculations are **visible and transparent** — no hidden scoring models or black-box rankings.  
+- Strategies are **curated from official, publicly available sources** (for example, government publications),
+  typically under the **Open Government Licence (OGL)** or equivalent open licences.  
+- The underlying code is **fully open source**, so anyone can inspect, reuse or adapt it for their own context.
+"""
+    )
+
+    # How people can contribute
+    st.markdown("### How you can contribute")
+    st.markdown(
+        """
+If you find this useful, you can help improve it by:
+
+- Sharing links to **new or missing public data strategies**.
+- Flagging **errors in the metadata** (country, year, organisation type, etc.).
+- Suggesting **better examples** for the Ten Lenses or maturity themes.
+- Sharing how you’ve used the tool in **workshops, training or strategy work**.
+
+For now, the easiest way to contribute is via LinkedIn or the GitHub repository.
+"""
+    )
+
+    # Personal note / provenance
+    st.markdown(
+        """
+<small>
+This prototype was created by <strong>Bandhu Das</strong>, a public-sector data strategist,
+as a side project for learning, facilitation and skills development.  
+Connect on LinkedIn: <a href="https://www.linkedin.com/in/bandhu-das" target="_blank">linkedin.com/in/bandhu-das</a>.  
+It is a community-led prototype and is <strong>not</strong> an official government service.
+</small>
+""",
+        unsafe_allow_html=True,
     )
 
 # ====================================================
