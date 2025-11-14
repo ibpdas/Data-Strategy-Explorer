@@ -1325,7 +1325,7 @@ with tab_about:
     st.markdown(
         """
 <div class="info-panel">
-  <strong>Why this exists:</strong> this explorer started as a side-project by a public-sector
+  <strong>Why this exists:</strong> this explorer started as a side project by a public-sector
   data strategist to make conversations about <em>data maturity</em> and <em>strategic tensions</em>
   more concrete. It is a learning and facilitation tool, not a benchmarking product or official view.
 </div>
@@ -1346,7 +1346,7 @@ This prototype combines three main ingredients:
    **Uses, Data, Leadership, Culture, Tools, Skills** — each rated from **1 (Beginning)** to **5 (Mastering)**.  
    The average score gives a simple sense of overall readiness.
 
-2. **Ten Lenses of Data Strategy**  
+2. **Ten lenses of tensions**  
    A set of paired tensions that describe different ways a data strategy can be configured.  
    The goal is not to pick a “correct” side, but to make trade-offs explicit, for example:
 """
@@ -1374,7 +1374,7 @@ This prototype combines three main ingredients:
 3. **Resources and skills**  
    The **Resources** tab links these ideas to wider strategy and skills material
    (for example, strategy “kernels”, horizons, and data-skills maturity lenses),
-   so that insights from this tool can feed into **personal development** as well as **organisation-level planning**.
+   so that insights from this tool can feed into **personal development** as well as **business level planning**.
 """
     )
 
@@ -1413,7 +1413,7 @@ This prototype combines three main ingredients:
 - **Conflicts** are highlighted when there is a big ambition on a lens that usually requires
   higher maturity (for example, very democratised access or big-bang delivery at low overall readiness).  
 - **Search** defaults to keyword matching; if you enable semantic search locally (with the optional
-  `sentence-transformers` library installed) it will also offer a meaning-based search option.
+  `sentence-transformers` library installed) it will also offer a meaning based search option.
 """
     )
 
@@ -1431,7 +1431,7 @@ from the inputs you provide in the app.
 
     st.markdown(
         """
-- All inputs are **self-reported** and should be treated as prompts, not formal audit evidence.  
+- All inputs are **self reported** and should be treated as prompts, not formal audit evidence.  
 - The tool is **not designed for ranking or comparing** named organisations.  
 - It does not express any **official government position** and should not be quoted as such.  
 - Use the outputs to structure **conversations, workshops and action planning**, alongside
@@ -1446,7 +1446,7 @@ from the inputs you provide in the app.
 
     st.markdown(
         """
-- The code is intended to be **forked and adapted** — for different sectors, countries or frameworks.  
+- The code is intended to be **forked and adapted** via GitHub repository for different sectors, countries or frameworks.  
 - If you adapt it, please:  
   - Be clear about your own **data sources** and **licensing** (for example, OGL or other open licences).  
   - Keep the **logic transparent**, so users can see how scores and visuals are produced.  
