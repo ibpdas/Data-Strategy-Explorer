@@ -785,9 +785,7 @@ with tab_explore:
                 st.rerun()
             except Exception as e:
                 st.error(f"Upload error: {e}")
-
-
-  with st.sidebar:
+with st.sidebar:
     st.subheader("Filters")
 
     years = sorted(y for y in df["year"].dropna().unique())
@@ -836,6 +834,15 @@ with tab_explore:
     )
     if emb_df is None and search_mode == "AI semantic":
         st.caption("AI semantic search is not available in this deployment.")
+
+
+ if q:
+    if search_mode == "AI semantic" and emb_df is not None:
+        st.caption("Semantic search active (AI based similarity).")
+        fdf = semantic_search(fdf, emb_df, q, top_k=100)
+    else:
+        fdf = simple_search(fdf, q)
+    st.caption(f"{len(fdf)} strategies match your query.")
 
 
 # ====================================================
