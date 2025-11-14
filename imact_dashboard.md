@@ -36,7 +36,7 @@ Named Data Owners in all business areas with a quarterly forum in place.
 **Capabilities we enable across the organisation**
 
 ### Government Data Maturity Framework  
-<sub>Example indicators: Governance, Architecture, Quality, Skills, Use & Value, Leadership</sub>
+<sub>Example thematic indicators: Uses, Data, Culture, Skills, Tools, Leadership</sub>
 
 📈 *Trend 2021 → 2025*
 
