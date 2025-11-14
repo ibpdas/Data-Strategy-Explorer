@@ -1281,8 +1281,155 @@ with tab_actions:
 # ====================================================
 # 📚 RESOURCES
 # ====================================================
+# ====================================================
+# 🧩 SKILLS (Data strategist self-assessment)
+# ====================================================
 with tab_resources:
-    st.subheader("Resources — strategy & data frameworks")
+    st.subheader("Skills – data strategist self-assessment")
+
+    st.markdown(
+        """
+Use this page to **reflect on your own skills as a data strategist**, alongside the
+strategy and maturity work you do for your organisation.
+
+It is inspired by the idea of a **skills maturity matrix** (for example, the
+*Undercurrent Skills Maturity Matrix*), but simplified and adapted for
+public sector data leaders.
+"""
+    )
+
+    st.markdown("### 1) Behaviours and skills")
+
+    st.caption(
+        "For each behaviour, pick the statement that feels **most like you today**. "
+        "This is for reflection only – nothing is stored or shared."
+    )
+
+    # Simple 4-level scale used for all skills
+    LEVEL_LABELS = [
+        "1 – Early awareness",
+        "2 – Practising",
+        "3 – Confident and consistent",
+        "4 – Leading and coaching others",
+    ]
+
+    # Map to UK Civil Service behaviours (rough, indicative)
+    BEHAVIOUR_SKILLS = {
+        "Seeing the Big Picture": [
+            "Connect data work to policy outcomes and citizen impact",
+            "Balance short-term delivery with long-term strategic positioning",
+        ],
+        "Leadership & Communicating": [
+            "Tell compelling data stories for senior, non-technical audiences",
+            "Frame trade-offs and tensions in clear, human language",
+        ],
+        "Delivering at Pace": [
+            "Shape lean, test-and-learn delivery plans for data initiatives",
+            "Balance experimentation with delivery discipline and governance",
+        ],
+        "Changing & Improving": [
+            "Prototype new uses of AI and data safely and responsibly",
+            "Spot opportunities to simplify, standardise and reuse",
+        ],
+        "Collaborating & Partnering": [
+            "Broker alignment across digital, data, policy, and operations teams",
+            "Work with external partners (academia, vendors, other departments) effectively",
+        ],
+        "Developing Self & Others": [
+            "Build data literacy and confidence in others",
+            "Coach teams to think in terms of value, not just tools",
+        ],
+        "Data Skills (technical and analytical)": [
+            "Work with analytical teams on methods, limitations and assumptions",
+            "Understand enough of data architecture / engineering to ask the right questions",
+        ],
+    }
+
+    # Store selections in session
+    if "_skills_matrix" not in st.session_state:
+        st.session_state["_skills_matrix"] = {}
+
+    skills_data = []
+
+    for behaviour, skills in BEHAVIOUR_SKILLS.items():
+        st.markdown(f"#### {behaviour}")
+        cols = st.columns(2)
+        for i, skill in enumerate(skills):
+            with cols[i % 2]:
+                key = f"skill_{behaviour}_{i}"
+                current_val = st.session_state["_skills_matrix"].get(key, LEVEL_LABELS[1])
+                selected = st.selectbox(
+                    skill,
+                    LEVEL_LABELS,
+                    index=LEVEL_LABELS.index(current_val) if current_val in LEVEL_LABELS else 1,
+                    key=key,
+                )
+                st.session_state["_skills_matrix"][key] = selected
+                skills_data.append(
+                    {
+                        "Behaviour": behaviour,
+                        "Skill": skill,
+                        "Level": selected,
+                        "Level_num": int(selected.split("–")[0].strip()),
+                    }
+                )
+
+    st.markdown("---")
+
+    # Turn into DataFrame for summary and heatmap
+    if skills_data:
+        skills_df = pd.DataFrame(skills_data)
+
+        # Summary by behaviour
+        summary = (
+            skills_df.groupby("Behaviour")["Level_num"]
+            .mean()
+            .reset_index()
+            .rename(columns={"Level_num": "Average level"})
+        )
+
+        c1, c2 = st.columns([1, 1])
+
+        with c1:
+            st.markdown("### 2) Summary by behaviour")
+            st.dataframe(summary, use_container_width=True)
+
+        with c2:
+            st.markdown("### 3) Heatmap view")
+            # Pivot to Behaviour x Skill with numeric levels
+            heat = skills_df.pivot_table(
+                index="Behaviour",
+                columns="Skill",
+                values="Level_num",
+                aggfunc="mean",
+            )
+
+            fig_heat = px.imshow(
+                heat,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale="Blues",
+                origin="upper",
+                labels=dict(color="Level"),
+                title="Skills heatmap (1 = early awareness • 4 = leading / coaching)",
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+        # Download option
+        csv_skills = skills_df.drop(columns=["Level_num"]).to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download skills self-assessment (CSV)",
+            data=csv_skills,
+            file_name="data_strategist_skills_self_assessment.csv",
+            mime="text/csv",
+        )
+
+    st.markdown("---")
+
+    # ====================================================
+    # 📚 Strategy & data frameworks (moved to bottom)
+    # ====================================================
+    st.subheader("Strategy and data frameworks")
 
     st.markdown(
         """
@@ -1304,15 +1451,16 @@ Use these frameworks to deepen the conversation around your data strategy:
   Cross-check that your strategy covers key disciplines: data quality, governance, architecture, security, metadata, etc.
 
 - **Government Data Maturity Assessment (CDDO)**  
-  The six themes you’ve used in this tool. Use the official framework for a deeper organisation-wide conversation.
+  The six themes you have used in this tool. Use the official framework for a deeper organisation-wide conversation.
 
-- **Outcome & Value Frameworks (e.g. logic models, theory of change)**  
+- **Outcome & Value Frameworks (logic models, theory of change)**  
   Link data initiatives to **policy outcomes**, not just technology deliverables.
 """
     )
 
     st.markdown(
-        "_Public sector resources to be added_"
+        "_Over time you could link directly to curated public sector strategies, case studies, "
+        "and learning resources for data leaders._"
     )
 
 # ====================================================
