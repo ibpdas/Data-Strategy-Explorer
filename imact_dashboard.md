@@ -8,7 +8,7 @@ Three level model to track and communicate impact from more effective data manag
 **Direct levers we control**
 
 ### Five Foundational Pillars (Examples)  
-| Direction | Data | Tools | Skills | Community |
+| Direction | Leadership | Tools | Skills | Community |
 |-----------|--------------|-------|--------|-----------|
 | **Started** | **Not started** | **Completed** | **Started** | **Started** |
 
