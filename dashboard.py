@@ -1314,7 +1314,7 @@ Named Data Owners in all business areas with a quarterly forum in place.
 ### Government Data Maturity Framework  
 <sub>Example thematic indicators: Uses, Data, Culture, Skills, Tools, Leadership</sub>
 
-📈 *Trend 2021-2025*
+ *📈Trend 2021-2025*
 
 ---
 
