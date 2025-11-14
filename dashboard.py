@@ -1429,10 +1429,8 @@ public sector data leaders.
     # ====================================================
     # 📚 Strategy & data frameworks (moved to bottom)
     # ====================================================
-    st.subheader("Strategy and data frameworks")
-
-    st.subheader("📚 Frameworks & Case Studies")
-    st.markdown("Selected readings that inform stratgic thinking.")
+       st.subheader("📚 Frameworks & Case Studies")
+    st.markdown("Selected readings that inform this dashboard’s metrics and maturity model.")
     resources = [
         ("OECD – Data Governance (Policy Sub-Issue)",
          "Policy and governance principles for managing data across its lifecycle.",
@@ -1475,6 +1473,8 @@ public sector data leaders.
          "https://www.oecd-ilibrary.org/economics/measuring-data-as-an-asset_b840fb01-en",
          "Cross-cutting"),
     ]
+        st.markdown(f"**[{title}]({link})**  \n*{level}* — {summary}")
+        st.divider()
 
 # ====================================================
 # ℹ️ ABOUT
