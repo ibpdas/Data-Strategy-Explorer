@@ -593,7 +593,7 @@ def render_explore_charts(fdf: pd.DataFrame):
 
 # ---------------- TABS SETUP ----------------
 ensure_sessions()
-tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_skills, tab_about = st.tabs(
+tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_about = st.tabs(
     ["Home", "Explore", "Lenses", "Journey", "Actions & Export", "Resources", "About"]
 )
 
@@ -1279,159 +1279,185 @@ with tab_actions:
         )
 
 # ====================================================
-# 🧑‍💻 SKILLS
+# 📚 RESOURCES
 # ====================================================
-with tab_skills:
-    st.subheader("Skills for data strategists")
+# ====================================================
+# 🧩 SKILLS (Data strategist self-assessment)
+# ====================================================
+with tab_resources:
+    st.subheader("Skills – data strategist self-assessment")
 
     st.markdown(
         """
-Use this page as a **self reflection tool**.  
-It helps you map your capability against **Civil Service Behaviours** and some
-cross cutting **data skills**. It is not an official assessment.
+Use this page to **reflect on your own skills as a data strategist**, alongside the
+strategy and maturity work you do for your organisation.
+
+It is inspired by the idea of a **skills maturity matrix** (for example, the
+*Undercurrent Skills Maturity Matrix*), but simplified and adapted for
+public sector data leaders.
 """
     )
 
-    # ------------------------------------------------
-    # 1) Behaviour based skills rating
-    # ------------------------------------------------
-    st.markdown("### 1) Behaviours and skills (self rating)")
+    st.markdown("### 1) Behaviours and skills")
 
     st.caption(
-        "For each behaviour and skill, pick the level that best describes you today. "
-        "You can use this privately, or as a prompt for line management and development conversations."
+        "For each behaviour, pick the statement that feels **most like you today**. "
+        "This is for reflection only – nothing is stored or shared."
     )
 
-    heatmap_rows = []
+    # Simple 4-level scale used for all skills
+    LEVEL_LABELS = [
+        "1 – Early awareness",
+        "2 – Practising",
+        "3 – Confident and consistent",
+        "4 – Leading and coaching others",
+    ]
 
-    for behaviour in CS_BEHAVIOURS:
-        skills = SKILL_MATRIX.get(behaviour, [])
-        if not skills:
-            continue
+    # Map to UK Civil Service behaviours (rough, indicative)
+    BEHAVIOUR_SKILLS = {
+        "Seeing the Big Picture": [
+            "Connect data work to policy outcomes and citizen impact",
+            "Balance short-term delivery with long-term strategic positioning",
+        ],
+        "Leadership & Communicating": [
+            "Tell compelling data stories for senior, non-technical audiences",
+            "Frame trade-offs and tensions in clear, human language",
+        ],
+        "Delivering at Pace": [
+            "Shape lean, test-and-learn delivery plans for data initiatives",
+            "Balance experimentation with delivery discipline and governance",
+        ],
+        "Changing & Improving": [
+            "Prototype new uses of AI and data safely and responsibly",
+            "Spot opportunities to simplify, standardise and reuse",
+        ],
+        "Collaborating & Partnering": [
+            "Broker alignment across digital, data, policy, and operations teams",
+            "Work with external partners (academia, vendors, other departments) effectively",
+        ],
+        "Developing Self & Others": [
+            "Build data literacy and confidence in others",
+            "Coach teams to think in terms of value, not just tools",
+        ],
+        "Data Skills (technical and analytical)": [
+            "Work with analytical teams on methods, limitations and assumptions",
+            "Understand enough of data architecture / engineering to ask the right questions",
+        ],
+    }
 
+    # Store selections in session
+    if "_skills_matrix" not in st.session_state:
+        st.session_state["_skills_matrix"] = {}
+
+    skills_data = []
+
+    for behaviour, skills in BEHAVIOUR_SKILLS.items():
         st.markdown(f"#### {behaviour}")
-        for idx, skill in enumerate(skills):
-            # Build a stable key
-            key_slug = (
-                "skill_"
-                + behaviour.replace(" ", "_").replace("&", "and").lower()
-                + f"_{idx}"
-            )
-            level = st.selectbox(
-                skill,
-                SKILL_LEVELS,
-                index=1,  # default "Basic working level"
-                key=key_slug,
-            )
-            heatmap_rows.append(
-                {
-                    "Behaviour": behaviour,
-                    "Skill": skill,
-                    "Level name": level,
-                    "Level score": SKILL_LEVELS.index(level) + 1,
-                }
-            )
-
-        st.markdown("---")
-
-    # Build pivot for heatmap
-    if heatmap_rows:
-        skills_df = pd.DataFrame(heatmap_rows)
-
-        pivot = skills_df.pivot_table(
-            index="Behaviour",
-            columns="Skill",
-            values="Level score",
-            aggfunc="mean",
-        ).fillna(0)
-
-        st.markdown("#### Heatmap view")
-
-        fig_heat = px.imshow(
-            pivot,
-            color_continuous_scale="Blues",
-            aspect="auto",
-            labels=dict(color="Level (1–4)"),
-        )
-        fig_heat.update_layout(
-            xaxis_title="Skill",
-            yaxis_title="Civil Service Behaviour",
-            margin=dict(l=60, r=20, t=40, b=60),
-        )
-        st.plotly_chart(fig_heat, use_container_width=True)
-
-        avg_level = skills_df["Level score"].mean()
-        st.metric("Average behaviour based skill level", f"{avg_level:.1f} / 4")
-
-    else:
-        st.info("No skills captured yet. Use the selectors above to rate your skills.")
-
-    # ------------------------------------------------
-    # 2) Cross cutting data skills
-    # ------------------------------------------------
-    st.markdown("### 2) Data skills (cross cutting)")
-
-    st.caption(
-        "These sit alongside behaviours and reflect the technical and analytical literacy "
-        "that underpins effective data strategy leadership."
-    )
-
-    data_skill_scores = []
-    for i, area in enumerate(DATA_SKILL_AREAS):
-        key_slug = "data_skill_" + str(i)
-        level = st.selectbox(
-            area,
-            SKILL_LEVELS,
-            index=1,
-            key=key_slug,
-        )
-        data_skill_scores.append(SKILL_LEVELS.index(level) + 1)
-
-    if data_skill_scores:
-        avg_data_skill = sum(data_skill_scores) / len(data_skill_scores)
-        st.metric("Average data skill level", f"{avg_data_skill:.1f} / 4")
-
-    st.markdown(
-        "_You might use this section to shape your learning plan or identify areas "
-        "for mentoring, communities of practice or formal training._"
-    )
+        cols = st.columns(2)
+        for i, skill in enumerate(skills):
+            with cols[i % 2]:
+                key = f"skill_{behaviour}_{i}"
+                current_val = st.session_state["_skills_matrix"].get(key, LEVEL_LABELS[1])
+                selected = st.selectbox(
+                    skill,
+                    LEVEL_LABELS,
+                    index=LEVEL_LABELS.index(current_val) if current_val in LEVEL_LABELS else 1,
+                    key=key,
+                )
+                st.session_state["_skills_matrix"][key] = selected
+                skills_data.append(
+                    {
+                        "Behaviour": behaviour,
+                        "Skill": skill,
+                        "Level": selected,
+                        "Level_num": int(selected.split("–")[0].strip()),
+                    }
+                )
 
     st.markdown("---")
 
-    # ------------------------------------------------
-    # 3) Strategy and data frameworks
-    # ------------------------------------------------
-    st.markdown("### 3) Strategy and data frameworks")
+    # Turn into DataFrame for summary and heatmap
+    if skills_data:
+        skills_df = pd.DataFrame(skills_data)
+
+        # Summary by behaviour
+        summary = (
+            skills_df.groupby("Behaviour")["Level_num"]
+            .mean()
+            .reset_index()
+            .rename(columns={"Level_num": "Average level"})
+        )
+
+        c1, c2 = st.columns([1, 1])
+
+        with c1:
+            st.markdown("### 2) Summary by behaviour")
+            st.dataframe(summary, use_container_width=True)
+
+        with c2:
+            st.markdown("### 3) Heatmap view")
+            # Pivot to Behaviour x Skill with numeric levels
+            heat = skills_df.pivot_table(
+                index="Behaviour",
+                columns="Skill",
+                values="Level_num",
+                aggfunc="mean",
+            )
+
+            fig_heat = px.imshow(
+                heat,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale="Blues",
+                origin="upper",
+                labels=dict(color="Level"),
+                title="Skills heatmap (1 = early awareness • 4 = leading / coaching)",
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+        # Download option
+        csv_skills = skills_df.drop(columns=["Level_num"]).to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download skills self-assessment (CSV)",
+            data=csv_skills,
+            file_name="data_strategist_skills_self_assessment.csv",
+            mime="text/csv",
+        )
+
+    st.markdown("---")
+
+    # ====================================================
+    # 📚 Strategy & data frameworks (moved to bottom)
+    # ====================================================
+    st.subheader("Strategy and data frameworks")
 
     st.markdown(
         """
 Use these frameworks to deepen the conversation around your data strategy:
 
-- **Playing to Win (Lafley and Martin)**  
-  Use this to sharpen the **strategic choices** that your data work supports  
-  (where will you play, how will you win).
+- **Playing to Win (Lafley & Martin)**  
+  *Where will you play? How will you win?* Use this to sharpen the **strategic choices** that your data work supports.
 
 - **Strategy Kernel (Diagnosis → Guiding Policy → Coherent Actions)**  
-  Turn your maturity profile and lens choices into a clear diagnosis, a guiding policy,  
-  and a small set of coherent actions.
+  Map your **maturity diagnosis** and **lens choices** into a guiding policy and 5–10 coherent actions.
 
 - **Three Horizons Framework**  
-  Plan work over time:  
+  Align actions over time:  
   - Horizon 1: Fix foundations and quick wins  
-  - Horizon 2: Build new data and analytics capabilities  
-  - Horizon 3: Transform services and operating models
+  - Horizon 2: Build new capabilities  
+  - Horizon 3: Transform services and models
 
-- **DAMA DMBOK (Data Management Body of Knowledge)**  
-  Sense check that your strategy covers key disciplines such as data quality, governance,  
-  architecture, security and metadata.
+- **Data Management Body of Knowledge (DAMA-DMBOK)**  
+  Cross-check that your strategy covers key disciplines: data quality, governance, architecture, security, metadata, etc.
 
-- **Government Data Maturity Assessment (CDDO)**  
-  The six themes you used in the **Lenses** tab. Use the official framework for deeper,  
-  organisation wide conversations.
-
-- **Outcome and value frameworks (logic models, theory of change)**  
-  Link data initiatives to **policy and service outcomes**, not just technology deliverables.
+- **Outcome & Value Frameworks (logic models, theory of change)**  
+  Link data initiatives to **policy outcomes**, not just technology deliverables.
 """
+    )
+
+    st.markdown(
+        "_Over time you could link directly to curated public sector strategies, case studies, "
+        "and learning resources for data leaders._"
     )
 
 # ====================================================
