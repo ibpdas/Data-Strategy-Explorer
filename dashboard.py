@@ -818,7 +818,7 @@ with tab_explore:
                 st.error(f"Upload error: {e}")
 
     with st.sidebar:
-        st.subheader("Filters")
+        st.subheader("Filters for Explore Tab")
         years = sorted(y for y in df["year"].dropna().unique())
         if years:
             yr = st.slider(
