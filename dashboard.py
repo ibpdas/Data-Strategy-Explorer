@@ -840,8 +840,8 @@ with tab_explore:
         scope_sel = st.multiselect("Scope", scopes, default=scopes)
 
         q = st.text_input(
-            "**Experimental Feature** - Search strategies",
-            placeholder="e.g. 'federated data strategy for small countries' or 'AI ethics framework'",
+            "**Experimental Feature** - Search strategies, see results in Explore tab",
+            placeholder="e.g. 'DEFRA' or 'Data ethics'",
         )
 
         search_mode = st.radio(
