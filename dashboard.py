@@ -814,9 +814,6 @@ with tab_explore:
     "🔍 *Experimental Feature:* Keyword search may miss matches. "
     "AI semantic search (if enabled) is approximate and may return unpredictable results."
 )
-)
-
-
         search_mode = st.radio(
             "Search mode",
             options=["Keyword", "AI semantic"],
