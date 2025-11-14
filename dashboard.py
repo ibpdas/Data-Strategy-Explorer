@@ -1244,6 +1244,9 @@ with tab_journey:
 # ====================================================
 # ACTIONS, PROJECTS, IMPACT DASHBOARD AND EXPORT
 # ====================================================
+# ====================================================
+# ACTIONS, PROJECTS, IMPACT DASHBOARD AND EXPORT
+# ====================================================
 with tab_actions:
     st.subheader("Actions, projects and export")
     st.caption(
@@ -1262,11 +1265,12 @@ with tab_actions:
     else:
 
         # ----------------------------------------------------------
-        # ADD PROJECT AND IMPACT COLUMNS IF MISSING
+        # ADD PROJECT, MATURITY AND IMPACT COLUMNS IF MISSING
         # ----------------------------------------------------------
         project_and_impact_cols = [
             "Project description",
             "Project type",
+            "Data maturity theme",
             "Impact type",
             "Est annual financial impact (£)",
             "Users affected (volume)",
@@ -1277,6 +1281,11 @@ with tab_actions:
         for col in project_and_impact_cols:
             if col not in actions_df.columns:
                 actions_df[col] = ""
+
+        # Remove old columns that are no longer helpful
+        for col in ["Lens", "Direction"]:
+            if col in actions_df.columns:
+                actions_df = actions_df.drop(columns=[col])
 
         # Preset options for "Project type"
         project_type_options = [
@@ -1291,6 +1300,15 @@ with tab_actions:
             "Skills or capability",
         ]
 
+        # Preset options for "Data maturity theme"
+        maturity_theme_options = [
+            "Governance",
+            "Architecture",
+            "Tools",
+            "Skills",
+            "Community",
+        ]
+
         # Preset options for "Impact type"
         impact_type_options = [
             "Financial efficiency",
@@ -1301,6 +1319,24 @@ with tab_actions:
             "Citizen experience",
             "Delivery unblocker",
         ]
+
+        # Reorder columns so Project description sits right after Priority
+        preferred_order = [
+            "Priority",
+            "Project description",
+            "Project type",
+            "Data maturity theme",
+            "Impact type",
+            "Est annual financial impact (£)",
+            "Users affected (volume)",
+            "Confidence (1 to 5)",
+            "Impact notes",
+        ]
+        existing_cols = list(actions_df.columns)
+        ordered_cols = [c for c in preferred_order if c in existing_cols] + [
+            c for c in existing_cols if c not in preferred_order
+        ]
+        actions_df = actions_df[ordered_cols]
 
         # ----------------------------------------------------------
         # WORKSHOP PROMPTS
@@ -1320,6 +1356,9 @@ with tab_actions:
 
 **Project type**
 - Classify the work, for example data product, pipeline, platform, standards or governance.
+
+**Data maturity theme**
+- Map the project to a primary theme such as governance, architecture, tools, skills or community.
 
 **Impact fields**
 - **Impact type**: choose one that best describes the benefit.
@@ -1344,7 +1383,12 @@ with tab_actions:
                 "Project type": st.column_config.SelectboxColumn(
                     "Project type",
                     options=project_type_options,
-                    help="What kind of project or work item is this"
+                    help="What kind of project or work item is this",
+                ),
+                "Data maturity theme": st.column_config.SelectboxColumn(
+                    "Data maturity theme",
+                    options=maturity_theme_options,
+                    help="Primary data maturity theme this project supports",
                 ),
                 "Impact type": st.column_config.SelectboxColumn(
                     "Impact type",
@@ -1353,33 +1397,32 @@ with tab_actions:
                 ),
                 "Est annual financial impact (£)": st.column_config.NumberColumn(
                     "Est annual financial impact (£)",
-                    help="Estimated one year financial benefit or saving"
+                    help="Estimated one year financial benefit or saving",
                 ),
                 "Users affected (volume)": st.column_config.NumberColumn(
                     "Users affected (volume)",
-                    help="Approx number of users or service cases touched"
+                    help="Approx number of users or service cases touched",
                 ),
                 "Confidence (1 to 5)": st.column_config.NumberColumn(
                     "Confidence (1 to 5)",
                     min_value=1,
                     max_value=5,
                     step=1,
-                    help="Your level of certainty in the impact estimate"
+                    help="Your level of certainty in the impact estimate",
                 ),
-            }
+            },
         )
 
         # Save edited
         st.session_state["_actions_df"] = edited
 
         # ==========================================================
-        # IMPACT DASHBOARD (simple, no Altair)
+        # IMPACT DASHBOARD
         # ==========================================================
         st.markdown("### Impact dashboard")
 
         impact_df = edited.copy()
 
-        # Ensure numeric fields are treated as numbers
         numeric_cols = [
             "Est annual financial impact (£)",
             "Users affected (volume)",
@@ -1387,36 +1430,44 @@ with tab_actions:
         ]
         for col in numeric_cols:
             if col in impact_df.columns:
-                impact_df[col] = pd.to_numeric(impact_df[col], errors="ignore")
+                impact_df[col] = pd.to_numeric(impact_df[col], errors="coerce")
 
-        # KPI cards
-        total_financial = impact_df.get("Est annual financial impact (£)", pd.Series()).sum(skipna=True)
-        total_users = impact_df.get("Users affected (volume)", pd.Series()).sum(skipna=True)
-        avg_conf = impact_df.get("Confidence (1 to 5)", pd.Series()).mean(skipna=True)
+        total_financial = impact_df.get(
+            "Est annual financial impact (£)", pd.Series(dtype="float")
+        ).sum(skipna=True)
+        total_users = impact_df.get(
+            "Users affected (volume)", pd.Series(dtype="float")
+        ).sum(skipna=True)
+        avg_conf = impact_df.get(
+            "Confidence (1 to 5)", pd.Series(dtype="float")
+        ).mean(skipna=True)
 
         k1, k2, k3 = st.columns(3)
         k1.metric("Total estimated annual impact (£)", f"{total_financial:,.0f}")
         k2.metric("Users affected (total)", f"{int(total_users):,}")
-        k3.metric("Average confidence", f"{avg_conf:.1f}" if pd.notna(avg_conf) else "n a")
+        k3.metric(
+            "Average confidence",
+            f"{avg_conf:.1f}" if pd.notna(avg_conf) else "n a",
+        )
 
-        # Impact by type (simple Streamlit bar chart)
         if "Impact type" in impact_df.columns:
             impact_by_type = (
-                impact_df
-                .groupby("Impact type", dropna=True)
-                .agg({
-                    "Est annual financial impact (£)": "sum",
-                })
+                impact_df.groupby("Impact type", dropna=True)
+                .agg({"Est annual financial impact (£)": "sum"})
                 .reset_index()
             )
 
             if not impact_by_type.empty:
                 st.bar_chart(
-                    impact_by_type.set_index("Impact type")[["Est annual financial impact (£)"]]
+                    impact_by_type.set_index("Impact type")[
+                        ["Est annual financial impact (£)"]
+                    ]
                 )
                 st.caption("Bars show where financial impact is concentrated.")
             else:
-                st.caption("Impact chart will appear once impact types and values are filled in.")
+                st.caption(
+                    "Impact chart will appear once impact types and values are filled in."
+                )
         else:
             st.caption("Add an Impact type column to see impact by category.")
 
@@ -1429,7 +1480,6 @@ with tab_actions:
 
         f1, f2, f3 = st.columns(3)
 
-        # Filter by project type
         project_types_present = sorted(
             [p for p in project_type_options if p in view_df["Project type"].unique()]
         )
@@ -1439,7 +1489,6 @@ with tab_actions:
             index=0,
         )
 
-        # Filter by impact type
         impact_types_present = sorted(
             [i for i in impact_type_options if i in view_df["Impact type"].unique()]
         )
@@ -1449,7 +1498,6 @@ with tab_actions:
             index=0,
         )
 
-        # Sort choice
         sort_by = f3.selectbox(
             "Sort by",
             [
@@ -1460,15 +1508,13 @@ with tab_actions:
             index=0,
         )
 
-        # Apply filters
         if project_type_filter != "All":
             view_df = view_df[view_df["Project type"] == project_type_filter]
 
         if impact_type_filter != "All":
             view_df = view_df[view_df["Impact type"] == impact_type_filter]
 
-        # Apply sort
-        view_df[sort_by] = pd.to_numeric(view_df[sort_by], errors="ignore")
+        view_df[sort_by] = pd.to_numeric(view_df[sort_by], errors="coerce")
         view_df = view_df.sort_values(sort_by, ascending=False)
 
         st.dataframe(view_df, use_container_width=True)
