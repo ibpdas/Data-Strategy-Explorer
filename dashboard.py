@@ -787,82 +787,56 @@ with tab_explore:
                 st.error(f"Upload error: {e}")
 
     with st.sidebar:
-        st.subheader("Filters")
-        years = sorted(y for y in df["year"].dropna().unique())
-        if years:
-            yr = st.slider(
-                "Year range",
-                int(min(years)),
-                int(max(years)),
-                (int(min(years)), int(max(years))),
-            )
-        else:
-            yr = None
+  with st.sidebar:
+    st.subheader("Filters")
 
-        org_types = sorted([v for v in df["org_type"].unique() if v != ""])
-        org_type_sel = st.multiselect("Org type", org_types, default=org_types)
-
-        countries = sorted([v for v in df["country"].unique() if v != ""])
-        country_sel = st.multiselect("Country", countries, default=countries)
-
-        scopes = sorted([v for v in df["scope"].unique() if v != ""])
-        scope_sel = st.multiselect("Scope", scopes, default=scopes)
-
-        q = st.text_input
-        (st.caption(
-    "🔍 *Experimental Feature:* Keyword search may miss matches. "
-    "AI semantic search (if enabled) is approximate and may return unpredictable results."
-)
-        )
-        search_mode = st.radio(
-            "Search mode",
-            options=["Keyword", "AI semantic"],
-            index=1 if emb_df is not None else 0,
-            help="Keyword search looks for exact text matches. AI semantic search finds similar strategies by meaning.",
-        )
-        if emb_df is None and search_mode == "AI semantic":
-            st.caption("Install 'sentence-transformers' to enable AI semantic search.")
-
-    fdf = df.copy()
-    if yr:
-        fdf = fdf[fdf["year"].between(yr[0], yr[1])]
-    if org_type_sel:
-        fdf = fdf[fdf["org_type"].isin(org_type_sel)]
-    if country_sel:
-        fdf = fdf[fdf["country"].isin(country_sel)]
-    if scope_sel:
-        fdf = fdf[fdf["scope"].isin(scope_sel)]
-
-    if q:
-        if search_mode == "AI semantic" and emb_df is not None:
-            st.caption("Semantic search active (AI-based similarity).")
-            fdf = semantic_search(fdf, emb_df, q, top_k=100)
-        else:
-            fdf = simple_search(fdf, q)
-        st.caption(f"{len(fdf)} strategies match your query.")
-
-    if fdf.empty:
-        st.warning(
-            f"No strategies match the current filters and search term: **{q or '—'}**. "
-            "Try broadening filters or removing the search text."
+    years = sorted(y for y in df["year"].dropna().unique())
+    if years:
+        yr = st.slider(
+            "Year range",
+            int(min(years)),
+            int(max(years)),
+            (int(min(years)), int(max(years))),
         )
     else:
-        render_explore_charts(fdf)
-        st.markdown("### Strategy details")
-        for _, r in fdf.iterrows():
-            year_str = int(r["year"]) if pd.notna(r["year"]) else "—"
-            label = f"{r['title']} — {r['organisation']} ({year_str})"
-            if "similarity" in fdf.columns:
-                label += f"  [similarity {r.get('similarity', 0):.2f}]"
-            with st.expander(label):
-                st.write(r["summary"] or "_No summary provided._")
-                meta = st.columns(4)
-                meta[0].write(f"**Org type:** {r['org_type']}")
-                meta[1].write(f"**Country:** {r['country']}")
-                meta[2].write(f"**Scope:** {r['scope']}")
-                meta[3].write(f"**Source:** {r['source']}")
-                if r["link"]:
-                    st.link_button("Open document", r["link"])
+        yr = None
+
+    org_types = sorted([v for v in df["org_type"].unique() if v != ""])
+    org_type_sel = st.multiselect("Org type", org_types, default=org_types)
+
+    countries = sorted([v for v in df["country"].unique() if v != ""])
+    country_sel = st.multiselect("Country", countries, default=countries)
+
+    scopes = sorted([v for v in df["scope"].unique() if v != ""])
+    scope_sel = st.multiselect("Scope", scopes, default=scopes)
+
+    # Experimental search notice
+    st.markdown(
+        "<p style='font-size:0.85rem; color:#505a5f;'>"
+        "🔍 <em>Experimental feature</em>: Keyword search may miss matches. "
+        "AI semantic search (if enabled) is approximate and may return unpredictable results."
+        "</p>",
+        unsafe_allow_html=True,
+    )
+
+    # The actual search box
+    q = st.text_input(
+        "Search or describe strategies",
+        placeholder="For example: 'federated data strategy' or 'AI ethics framework'",
+    )
+
+    search_mode = st.radio(
+        "Search mode",
+        options=["Keyword", "AI semantic"],
+        index=1 if emb_df is not None else 0,
+        help=(
+            "Keyword search looks for simple text matches. "
+            "AI semantic search tries to find similar strategies by meaning."
+        ),
+    )
+    if emb_df is None and search_mode == "AI semantic":
+        st.caption("AI semantic search is not available in this deployment.")
+
 
 # ====================================================
 # 👁️ LENSES (Maturity → Tensions)
