@@ -1494,7 +1494,7 @@ public sector data leaders.
                                 gap: 6px;
                                 font-size: 0.85rem;
                                 font-weight: 500;
-                                color: #38bdf8;
+                                color: #7cd3ff;
                                 text-decoration: none;
                             ">
                                 <span>Open resource</span>
