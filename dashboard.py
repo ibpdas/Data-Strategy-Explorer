@@ -739,7 +739,7 @@ If you find this useful, you can help improve it by:
 - Suggesting **better examples** for the Ten Lenses or maturity themes.
 - Sharing how you’ve used the tool in **workshops, training or strategy work**.
 
-For now, the easiest way to contribute is via [![Contribute a Strategy](https://img.shields.io/badge/Contribute-Submit%20New%20Strategy-blue)](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission).
+For now, the easiest way to contribute is via GitHub [![Contribute a Strategy](https://img.shields.io/badge/Contribute-Submit%20New%20Strategy-blue)](https://github.com/ibpdas/Public-Sector-Data-Strategies/issues/new?assignees=&labels=enhancement%2Cresource&template=resource_submission.md&title=%F0%9F%92%A1+Strategy+Submission).
 """
     )
 
