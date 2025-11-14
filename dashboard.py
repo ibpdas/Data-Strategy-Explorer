@@ -1241,21 +1241,19 @@ with tab_journey:
 # ====================================================
 # ✅ ACTIONS & EXPORT
 # ====================================================
-# ====================================================
-# ACTIONS, IMPACT AND EXPORT
-# ====================================================
+
 with tab_actions:
 
-    st.subheader("Actions and Impact")
+    st.subheader("Actions and Export")
     st.caption(
-        "Use this space to focus on the most important shifts. "
-        "Review impact, refine actions, then export to CSV."
+        "Convert your priority shifts into a simple action log. "
+        "Assign owners, timelines and metrics, then export everything to CSV."
     )
 
     ensure_sessions()
     actions_df = st.session_state.get("_actions_df", pd.DataFrame())
 
-    # If there are no actions yet
+    # Show message if no actions exist
     if actions_df.empty:
         st.info(
             "No priority shifts are available yet. "
@@ -1263,98 +1261,20 @@ with tab_actions:
         )
 
     else:
-        # Work on a copy for metrics and editing
-        working_df = actions_df.copy()
-
-        # ------------------------------------------------
-        # Impact dashboard
-        # ------------------------------------------------
-        st.markdown("### Impact dashboard")
-
-        total_actions = len(working_df)
-
-        # Priority based metric (only if column exists)
-        if "Priority" in working_df.columns:
-            high_priority = working_df[working_df["Priority"] == "High"].shape[0]
-        else:
-            high_priority = None
-
-        # Overdue metric (only if Due date exists)
-        if "Due date" in working_df.columns:
-            due_dates = pd.to_datetime(
-                working_df["Due date"], errors="coerce"
-            )
-            overdue = (due_dates < pd.Timestamp.today()).sum()
-        else:
-            overdue = None
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Total actions", total_actions)
-
-        if high_priority is not None:
-            col2.metric("High priority actions", high_priority)
-        else:
-            col2.write("Add a Priority column to see this metric.")
-
-        if overdue is not None:
-            col3.metric("Overdue items", int(overdue))
-        else:
-            col3.write("Add a Due date column to see overdue items.")
-
-        st.caption(
-            "Use these signals to decide where to focus effort first."
-        )
-
-        # ------------------------------------------------
-        # Optional impact score (if columns exist)
-        # ------------------------------------------------
-        if "Priority" in working_df.columns and "Strategic value" in working_df.columns:
-            priority_map = {"High": 3, "Medium": 2, "Low": 1}
-            value_map = {"Strong": 3, "Medium": 2, "Emerging": 1}
-
-            working_df["Impact score"] = (
-                working_df["Priority"].map(priority_map).fillna(1)
-                * working_df["Strategic value"].map(value_map).fillna(1)
-            )
-
-            st.markdown("### Focus first on high impact actions")
-
-            focus_view = working_df.sort_values(
-                "Impact score", ascending=False
-            )
-
-            st.dataframe(
-                focus_view[[
-                    col for col in focus_view.columns
-                ]],
-                use_container_width=True,
-            )
-
-            st.caption(
-                "Higher scores indicate actions that are both high priority "
-                "and strongly aligned to your strategic outcomes."
-            )
-
-        # ------------------------------------------------
-        # Editable action log
-        # ------------------------------------------------
         st.markdown("### Action log (editable)")
 
         edited_df = st.data_editor(
-            working_df,
+            actions_df,
             num_rows="dynamic",
             use_container_width=True,
-            key="actions_editor",
+            key="actions_editor"
         )
 
-        # Persist edited table
+        # Persist the updated table
         st.session_state["_actions_df"] = edited_df
 
-        # ------------------------------------------------
-        # Export
-        # ------------------------------------------------
-        st.markdown("### Export")
+        # Export section
+        st.markdown("#### Export")
 
         csv_bytes = edited_df.to_csv(index=False).encode("utf-8")
 
@@ -1370,9 +1290,8 @@ with tab_actions:
             "<div style='font-size: 0.9rem; color: #6c757d;'>"
             "Tip: you can paste this table into programme plans, OKRs or delivery roadmaps."
             "</div>",
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
-
 
 # ====================================================
 # 📚 RESOURCES
