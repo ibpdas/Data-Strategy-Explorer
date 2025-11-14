@@ -1450,9 +1450,6 @@ Use these frameworks to deepen the conversation around your data strategy:
 - **Data Management Body of Knowledge (DAMA-DMBOK)**  
   Cross-check that your strategy covers key disciplines: data quality, governance, architecture, security, metadata, etc.
 
-- **Government Data Maturity Assessment (CDDO)**  
-  The six themes you have used in this tool. Use the official framework for a deeper organisation-wide conversation.
-
 - **Outcome & Value Frameworks (logic models, theory of change)**  
   Link data initiatives to **policy outcomes**, not just technology deliverables.
 """
