@@ -1646,6 +1646,16 @@ we design and deliver data strategies in the public sector.
 st.markdown("""
 ---
 <div class="footer">
-This prototype is created for learning and exploration. It is not an official service.
+<p>This is a community learning project. It collects no personal data. 
+All strategy documents are drawn from publicly available sources under the Open Government Licence.</p>
+
+<p>
+<img src="https://img.shields.io/badge/Open%20Source-Yes-1d70b8" height="22">
+<img src="https://img.shields.io/badge/Content-OGL%20v3.0-0b0c0c" height="22">
+<img src="https://img.shields.io/badge/No%20Personal%20Data%20Collected-✓-28a197" height="22">
+<img src="https://img.shields.io/badge/Community%20Project-Open%20Collaboration-f47738" height="22">
+<img src="https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B" height="22">
+</p>
 </div>
 """, unsafe_allow_html=True)
+
