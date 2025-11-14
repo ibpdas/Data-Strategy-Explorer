@@ -786,7 +786,7 @@ with tab_explore:
             except Exception as e:
                 st.error(f"Upload error: {e}")
 
-    with st.sidebar:
+
   with st.sidebar:
     st.subheader("Filters")
 
