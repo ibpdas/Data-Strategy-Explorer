@@ -565,7 +565,7 @@ def render_explore_charts(fdf: pd.DataFrame):
 
 # ---------------- TABS SETUP ----------------
 ensure_sessions()
-tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_resources, tab_about = st.tabs(
+tab_home, tab_explore, tab_lenses, tab_journey, tab_actions, tab_skills, tab_about = st.tabs(
     ["Home", "Explore", "Lenses", "Journey", "Actions", "Skills", "About"]
 )
 
@@ -619,11 +619,10 @@ with tab_home:
         st.markdown(
             """
 <div class="card">
-  <h3>Actions &amp; Resources</h3>
+  <h3>Actions &amp; Skills</h3>
   <p class="desc">
     Turn your top shifts into a simple <strong>action log</strong>, and use the
-    <strong>Resources</strong> tab to connect your insights to wider strategy and
-    skills frameworks (government and international).
+    <strong>Skills</strong> tab to connect your insights to personal professional development.
   </p>
 </div>
 """,
@@ -647,10 +646,10 @@ with tab_home:
         """
 Use this tool when you want to:
 
-- **Prepare or refine a data strategy** — sense-check whether your ambitions match your current maturity.
+- **Prepare or refine a data strategy** — sense check whether your ambitions match your current maturity.
 - **Run a workshop** with leaders or delivery teams (e.g. 60–90 minutes) to surface assumptions and disagreements.
 - **Turn vague direction into clearer shifts** — identify 3–5 practical changes in governance, delivery or access.
-- **Support learning and development** — use the Lenses, maturity themes and Resources tab as prompts for discussion.
+- **Support learning and development** — use the Lenses, maturity themes and skills tab as prompts for discussion and reflection.
 """
     )
 
@@ -678,7 +677,7 @@ Treat the outputs as structured prompts for conversation and planning, not as a 
 2. **Assess maturity** — agree where you sit today across the six government data maturity themes.  
 3. **Set tensions** — use the Ten Lenses to define your Current vs Target positions, with hints tailored to maturity.  
 4. **Review the journey** — focus on the biggest and riskiest shifts; sense-check for over- or under-reach.  
-5. **Capture actions & learn** — use the Actions tab to create an action log, and the Resources tab to deepen your thinking.
+5. **Capture actions & learn** — use the Actions tab to create an action log, and the Skills tab to deepen your thinking.
 """
     )
 
@@ -1196,7 +1195,7 @@ with tab_journey:
         )
 
     st.markdown(
-        "_Want to go deeper on coherence or pacing? See the **Strategy Kernel** and **Three Horizons** in the Resources tab._"
+        "_Want to go deeper on coherence or pacing aligned to personal skills and preferences? See the skills matrix in the Skills tab._"
     )
 
 # ====================================================
@@ -1549,8 +1548,8 @@ This prototype combines three main ingredients:
 
     st.markdown(
         """
-3. **Resources and skills**  
-   The **Resources** tab links these ideas to wider strategy and skills material
+3. **Skills**  
+   The **Skills** tab links these ideas to wider strategy and skills material
    (for example, strategy “kernels”, horizons, and data-skills maturity lenses),
    so that insights from this tool can feed into **personal development** as well as **organisation-level planning**.
 """
@@ -1572,8 +1571,8 @@ This prototype combines three main ingredients:
 - **Journey** compares these positions to show gaps and direction of travel, and flags
   when targets may be misaligned with your current maturity (for example, “big-bang delivery”
   at low readiness).  
-- **Actions & Export** lets you turn the top shifts into a small, editable action log.  
-- **Resources** connects this view to broader strategy and skills frameworks for further reading and self-development.
+- **Actions** lets you turn the top shifts into a small, editable action log.  
+- **Skills** connects this view to broader strategy and skills frameworks for further reading and self-development.
 """
     )
 
