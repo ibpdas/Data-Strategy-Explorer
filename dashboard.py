@@ -809,9 +809,11 @@ with tab_explore:
         scopes = sorted([v for v in df["scope"].unique() if v != ""])
         scope_sel = st.multiselect("Scope", scopes, default=scopes)
 
-        q = st.text_input(
-    " *Experimental feature:* Search is being tested to explore how LLM style semantic retrieval "
-    "might support strategy discovery. Results may be incomplete or unexpected."
+        q = st.text_input
+        (st.caption(
+    "🔍 *Experimental Feature:* Keyword search may miss matches. "
+    "AI semantic search (if enabled) is approximate and may return unpredictable results."
+)
 )
 
 
