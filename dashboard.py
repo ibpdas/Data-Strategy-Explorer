@@ -1454,15 +1454,6 @@ from the inputs you provide in the app.
 """
     )
 
-    st.markdown(
-        """
-<small>
-This explorer is maintained as a community learning tool. It draws on publicly available strategy
-documents and frameworks, and aims to promote more open, reflective conversations about how
-we design and deliver data strategies in the public sector.
-</small>
-"""
-    )
 # ---------------- Footer ----------------
 
 st.markdown("""
