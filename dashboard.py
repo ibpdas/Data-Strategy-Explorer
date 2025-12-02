@@ -103,7 +103,7 @@ a:hover {{ color:#003078; }}
 </style>
 <div class="header-bar">
   <h1>Think Studio</h1>
-  <div class="sub">Data Strategy Accelerator for public sector leaders.</div>
+  <div class="sub">Data Strategy Accelerator for public sector leaders</div>
 </div>
 """,
     unsafe_allow_html=True,
@@ -621,7 +621,7 @@ with tab_home:
     st.markdown(
         """
 <div class="info-panel">
-  <strong>What Think Studio is:</strong> A micro-lab for public sector data leaders
+  <strong>What Think Studio is:</strong> A micro lab for public sector data leaders
   to make <strong>business priorities</strong>, <strong>data maturity</strong> and
   <strong>strategic tensions</strong> explicit. It will not write your strategy for you,
   but it will help you have a better conversation about it.
