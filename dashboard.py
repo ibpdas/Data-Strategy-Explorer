@@ -621,7 +621,7 @@ with tab_home:
     st.markdown(
         """
 <div class="info-panel">
-  <strong>What this is:</strong> A thinking and workshop tool for public sector data leaders
+  <strong>What this is:</strong> A micro-lab for public sector data leaders
   to make <strong>business priorities</strong>, <strong>data maturity</strong> and
   <strong>strategic tensions</strong> explicit. It will not write your strategy for you,
   but it will help you have a better conversation about it.
