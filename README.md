@@ -2,7 +2,7 @@
 
 ![Think Studio Banner](https://github.com/ibpdas/ThinkStudio/blob/main/Resources/ThinkStudioBanner.png)
 
-Live demo: https://thinkstudio.streamlit.app/
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-ThinkStudio-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://thinkstudio.streamlit.app/)
 
 ---
 
