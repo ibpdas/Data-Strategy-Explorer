@@ -44,22 +44,15 @@ These figures summarise consistent findings across NAO audits, Cabinet Office wo
 
 ## 3. What Think Studio does
 
-One integrated micro lab that helps teams:
+One integrated micro lab built around five modules, each with a clear analytical scope.
 
-### Explore
-Scan peer materials for context, patterns and signals of emerging practice.
-
-### Diagnose
-Make business priorities, leader questions and data maturity explicit.
-
-### Shift
-Clarify where the organisation needs to move and which tensions matter most.
-
-### Action
-Turn those shifts into projects, owners, timelines and simple impact estimates.
-
-### Research
-Strengthen strategy skills with curated resources and self-assessment.
+| Module     | What it covers                               | Quantified scope                                                           |
+|-----------|-----------------------------------------------|----------------------------------------------------------------------------|
+| **Explore**  | Scan peer materials and context              | 14 strategies, 5 filters, optional AI semantic search                 |
+| **Diagnose** | Priorities, leader questions, maturity       | 6 maturity themes, 6–8 diagnostic prompts               |
+| **Shift**    | Movement, tensions and direction of travel   | 10 strategic tensions, gap and conflict analysis |
+| **Action**   | Projects, owners and impact                  | 9 project attributes, 1 action log, impact dashboard, CSV export           |
+| **Research** | Skills, behaviours and development           | 10 frameworks, 7 behaviours, CSV export              |
 
 ---
 
